@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>NiPOST Connect — Offline</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#081832;color:#E8EDF5;font-family:'DM Sans',-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center}
+    .card{max-width:400px;width:100%;background:#0D2244;border:1px solid #1E3A5F;border-radius:16px;padding:40px 32px}
+    .icon{font-size:56px;margin-bottom:16px}
+    h1{color:#D4A843;font-size:22px;margin-bottom:8px;font-weight:700}
+    p{color:#6B8299;font-size:14px;line-height:1.6;margin-bottom:24px}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:20px;padding:5px 14px;color:#F87171;font-size:13px;font-weight:600;margin-bottom:24px}
+    button{background:#D4A843;color:#0A1F44;border:none;border-radius:8px;padding:11px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
+    .tips{margin-top:24px;padding-top:20px;border-top:1px solid #1E3A5F;text-align:left}
+    .tips h3{color:#4B6280;font-size:11px;font-weight:700;letter-spacing:0.07em;margin-bottom:10px}
+    .tips li{color:#4B6280;font-size:13px;margin-bottom:6px;padding-left:16px;list-style:none;position:relative}
+    .tips li::before{content:"•";position:absolute;left:0;color:#D4A843}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📴</div>
+    <h1>You're offline</h1>
+    <div class="badge">📡 No internet connection</div>
+    <p>NiPOST Connect requires an internet connection. Check your connection and try again.</p>
+    <button onclick="window.location.reload()">🔄 Retry connection</button>
+    <div class="tips">
+      <h3>WHILE YOU WAIT</h3>
+      <ul>
+        <li>Previously loaded messages may still be accessible in your browser cache</li>
+        <li>Unsent messages will queue and send automatically on reconnect</li>
+        <li>Contact ICT support at ext. 1200 if the issue persists</li>
+      </ul>
+    </div>
+  </div>
+  <script>window.addEventListener("online", () => window.location.reload());</script>
+</body>
+</html>

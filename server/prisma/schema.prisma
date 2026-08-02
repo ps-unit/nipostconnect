@@ -1,0 +1,558 @@
+// NiPOST Connect v4 — Full Schema (Phase 1+2+3+4)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  STATE_ADMIN
+  DEPT_ADMIN
+  STAFF
+}
+
+enum ChannelType {
+  ANNOUNCEMENT
+  STATE
+  POST_OFFICE
+  DEPARTMENT
+  SUGGESTION
+  EMERGENCY
+  GENERAL
+}
+
+enum MessageType {
+  MESSAGE
+  ANNOUNCEMENT
+  MEMO
+  POLL
+  SUGGESTION
+  SYSTEM
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  NEW_MENTION
+  NEW_ANNOUNCEMENT
+  NEW_MEMO
+  NEW_POLL
+  JOIN_REQUEST
+  JOIN_APPROVED
+  JOIN_REJECTED
+  EMERGENCY
+  DIRECT_MESSAGE
+}
+
+enum ScheduledStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum BulkMemoStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum SMSStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model State {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  code      String    @unique
+  createdAt DateTime  @default(now())
+  users     User[]
+  channels  Channel[]
+
+  @@map("states")
+}
+
+model Department {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  isArchived  Boolean   @default(false)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       User[]
+  channels    Channel[]
+
+  @@map("departments")
+}
+
+model User {
+  id                  String             @id @default(uuid())
+  name                String
+  staffId             String             @unique
+  email               String             @unique
+  passwordHash        String
+  role                Role               @default(STAFF)
+  status              UserStatus         @default(PENDING_VERIFICATION)
+  avatar              String?
+  postOffice          String?
+  phone               String?
+  stateId             String?
+  state               State?             @relation(fields: [stateId], references: [id])
+  departmentId        String?
+  department          Department?        @relation(fields: [departmentId], references: [id])
+  refreshToken        String?
+  lastSeenAt          DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  sentMessages        Message[]          @relation("MessageAuthor")
+  channelMembers      ChannelMember[]
+  pollVotes           PollVote[]
+  reactions           Reaction[]
+  sentDMs             DirectMessage[]    @relation("DMSender")
+  receivedDMs         DirectMessage[]    @relation("DMReceiver")
+  joinRequests        JoinRequest[]
+  auditLogs           AuditLog[]
+  pinnedMessages      PinnedMessage[]
+  pushSubscriptions   PushSubscription[]
+  notifications       Notification[]
+  scheduledMessages   ScheduledMessage[]
+  bulkMemos           BulkMemo[]
+  staffImports        StaffImport[]
+  twoFA               UserTwoFA?
+  voiceParticipations VoiceParticipant[]
+  smsLogs             SMSLog[]
+  settings            UserSettings?
+  avatarUrl           String?
+
+  @@map("users")
+}
+
+model Channel {
+  id                 String              @id @default(uuid())
+  name               String
+  slug               String              @unique
+  type               ChannelType
+  description        String?
+  isLocked           Boolean             @default(false)
+  isArchived         Boolean             @default(false)
+  isReadOnly         Boolean             @default(false)
+  stateId            String?
+  state              State?              @relation(fields: [stateId], references: [id])
+  departmentId       String?
+  department         Department?         @relation(fields: [departmentId], references: [id])
+  createdById        String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  members            ChannelMember[]
+  messages           Message[]
+  joinRequests       JoinRequest[]
+  pinned             PinnedMessage[]
+  bulkMemoRecipients BulkMemoRecipient[]
+  voiceRoom          VoiceRoom?
+
+  @@map("channels")
+}
+
+model ChannelMember {
+  id         String    @id @default(uuid())
+  userId     String
+  channelId  String
+  joinedAt   DateTime  @default(now())
+  isAdmin    Boolean   @default(false)
+  isMuted    Boolean   @default(false)
+  lastReadAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@map("channel_members")
+}
+
+model Message {
+  id           String         @id @default(uuid())
+  content      String
+  type         MessageType    @default(MESSAGE)
+  isAnonymous  Boolean        @default(false)
+  editedAt     DateTime?
+  deletedAt    DateTime?
+  memoRef      String?
+  memoTo       String?
+  channelId    String
+  channel      Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User           @relation("MessageAuthor", fields: [authorId], references: [id])
+  parentId     String?
+  parent       Message?       @relation("Thread", fields: [parentId], references: [id])
+  replies      Message[]      @relation("Thread")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  poll         Poll?
+  reactions    Reaction[]
+  pinned       PinnedMessage?
+  readReceipts ReadReceipt[]
+  attachments  Attachment[]
+
+  @@map("messages")
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  width        Int?
+  height       Int?
+  thumbnailUrl String?
+  messageId    String
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedAt   DateTime @default(now())
+
+  @@map("attachments")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  title     String
+  body      String
+  icon      String?
+  url       String?
+  isRead    Boolean          @default(false)
+  type      NotificationType
+  refId     String?
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+model Poll {
+  id        String       @id @default(uuid())
+  question  String
+  deadline  DateTime
+  isActive  Boolean      @default(true)
+  messageId String       @unique
+  message   Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  options   PollOption[]
+  votes     PollVote[]
+  createdAt DateTime     @default(now())
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String     @id @default(uuid())
+  label  String
+  order  Int        @default(0)
+  pollId String
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id       String     @id @default(uuid())
+  userId   String
+  pollId   String
+  optionId String
+  user     User       @relation(fields: [userId], references: [id])
+  poll     Poll       @relation(fields: [pollId], references: [id])
+  option   PollOption @relation(fields: [optionId], references: [id])
+  votedAt  DateTime   @default(now())
+
+  @@unique([userId, pollId])
+  @@map("poll_votes")
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  emoji     String
+  messageId String
+  userId    String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@map("reactions")
+}
+
+model DirectMessage {
+  id         String    @id @default(uuid())
+  content    String
+  readAt     DateTime?
+  deletedAt  DateTime?
+  senderId   String
+  sender     User      @relation("DMSender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User      @relation("DMReceiver", fields: [receiverId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  @@map("direct_messages")
+}
+
+model JoinRequest {
+  id           String            @id @default(uuid())
+  reason       String?
+  status       JoinRequestStatus @default(PENDING)
+  reviewNote   String?
+  userId       String
+  user         User              @relation(fields: [userId], references: [id])
+  channelId    String
+  channel      Channel           @relation(fields: [channelId], references: [id])
+  reviewedById String?
+  createdAt    DateTime          @default(now())
+  reviewedAt   DateTime?
+
+  @@unique([userId, channelId])
+  @@map("join_requests")
+}
+
+model PinnedMessage {
+  id         String   @id @default(uuid())
+  messageId  String   @unique
+  channelId  String
+  pinnedById String
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  channel    Channel  @relation(fields: [channelId], references: [id])
+  pinnedBy   User     @relation(fields: [pinnedById], references: [id])
+  pinnedAt   DateTime @default(now())
+
+  @@map("pinned_messages")
+}
+
+model ReadReceipt {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@map("read_receipts")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  target    String?
+  meta      Json?
+  ipAddress String?
+  adminId   String
+  admin     User     @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model ScheduledMessage {
+  id          String          @id @default(uuid())
+  content     String
+  type        MessageType     @default(ANNOUNCEMENT)
+  memoRef     String?
+  memoTo      String?
+  channelId   String
+  scheduledAt DateTime
+  sentAt      DateTime?
+  status      ScheduledStatus @default(PENDING)
+  failReason  String?
+  authorId    String
+  author      User            @relation(fields: [authorId], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([scheduledAt, status])
+  @@map("scheduled_messages")
+}
+
+model BulkMemo {
+  id         String              @id @default(uuid())
+  subject    String
+  content    String
+  memoRef    String?
+  status     BulkMemoStatus      @default(DRAFT)
+  sentAt     DateTime?
+  sentCount  Int                 @default(0)
+  authorId   String
+  author     User                @relation(fields: [authorId], references: [id])
+  recipients BulkMemoRecipient[]
+  createdAt  DateTime            @default(now())
+
+  @@map("bulk_memos")
+}
+
+model BulkMemoRecipient {
+  id         String    @id @default(uuid())
+  bulkMemoId String
+  channelId  String
+  sentAt     DateTime?
+  messageId  String?
+  bulkMemo   BulkMemo  @relation(fields: [bulkMemoId], references: [id], onDelete: Cascade)
+  channel    Channel   @relation(fields: [channelId], references: [id])
+
+  @@unique([bulkMemoId, channelId])
+  @@map("bulk_memo_recipients")
+}
+
+model StaffImport {
+  id           String       @id @default(uuid())
+  filename     String
+  totalRows    Int          @default(0)
+  imported     Int          @default(0)
+  skipped      Int          @default(0)
+  errors       Json?
+  status       ImportStatus @default(PENDING)
+  uploadedById String
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime     @default(now())
+  completedAt  DateTime?
+
+  @@map("staff_imports")
+}
+
+// ── PHASE 4: TWO-FACTOR AUTH ──────────────────────────────────────────────────
+model UserTwoFA {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret      String
+  backupCodes String[] // hashed backup codes
+  isEnabled   Boolean   @default(false)
+  enabledAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("user_two_fa")
+}
+
+// ── PHASE 4: VOICE ROOMS ──────────────────────────────────────────────────────
+model VoiceRoom {
+  id           String             @id @default(uuid())
+  channelId    String             @unique
+  channel      Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  isActive     Boolean            @default(true)
+  startedById  String
+  startedAt    DateTime           @default(now())
+  endedAt      DateTime?
+  participants VoiceParticipant[]
+
+  @@map("voice_rooms")
+}
+
+model VoiceParticipant {
+  id       String    @id @default(uuid())
+  roomId   String
+  userId   String
+  room     VoiceRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id])
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  isMuted  Boolean   @default(false)
+
+  @@unique([roomId, userId])
+  @@map("voice_participants")
+}
+
+// ── PHASE 4: SMS LOGS ─────────────────────────────────────────────────────────
+model SMSLog {
+  id          String    @id @default(uuid())
+  recipient   String
+  message     String
+  status      SMSStatus @default(QUEUED)
+  termiiRef   String?
+  sentById    String
+  sentBy      User      @relation(fields: [sentById], references: [id])
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  @@map("sms_logs")
+}
+
+// ── ORGANIZATION SETTINGS (singleton) ────────────────────────────────────────
+model OrganizationSettings {
+  id              String   @id @default(uuid())
+  name            String   @default("NiPOST Connect")
+  slogan          String   @default("Nigerian Postal Service — Internal Platform")
+  logoUrl         String?
+  accentColor     String   @default("#D4A843")
+  contactEmail    String   @default("ict@nglosa.com")
+  contactPhone    String   @default("+234 9 234 8000")
+  address         String   @default("NiPOST Headquarters, Abuja")
+  website         String   @default("https://www.nipost.gov.ng")
+  welcomeMessage  String   @default("Welcome to NiPOST Connect. Please maintain professional conduct at all times.")
+  maxFileSize     Int      @default(10) // MB
+  allowedDomain   String   @default("nglosa.com")
+  maintenanceMode Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  updatedById     String?
+
+  @@map("organization_settings")
+}
+
+// ── USER SETTINGS (per-user preferences) ─────────────────────────────────────
+model UserSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notifications
+  pushEnabled        Boolean  @default(true)
+  emailNotifications Boolean  @default(false)
+  mutedChannels      String[] // channelIds
+  mentionOnly        Boolean  @default(false)
+
+  // Appearance
+  theme           String  @default("dark") // dark | light (future)
+  messageGrouping Boolean @default(true) // group consecutive messages
+  compactMode     Boolean @default(false)
+
+  // Privacy
+  showLastSeen     Boolean @default(true)
+  showOnlineStatus Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}
