@@ -9,7 +9,7 @@ const { verifyToken, verifyBackupCode } = require("../utils/twofa");
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
-const ALLOWED = process.env.ALLOWED_EMAIL_DOMAIN || "nglosa.com";
+const ALLOWED = process.env.ALLOWED_EMAIL_DOMAIN || "nipost.gov.ng";
 
 const generateTokens = (userId, role) => ({
   accessToken:  jwt.sign({ userId, role }, process.env.JWT_SECRET,         { expiresIn: process.env.JWT_EXPIRES_IN         || "15m" }),

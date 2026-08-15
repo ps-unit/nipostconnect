@@ -7,7 +7,7 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587");
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "NiPOST Connect";
-const FROM_ADDR = process.env.EMAIL_FROM_ADDR || "noreply@nglosa.com";
+const FROM_ADDR = process.env.EMAIL_FROM_ADDR || "noreply@nipost.gov.ng";
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 let transporter = null;
@@ -78,7 +78,7 @@ async function sendWelcome({ name, email, staffId, tempPassword }) {
     ${tempPassword ? `<p>Temporary password:<br><span class="code">${tempPassword}</span><br>Please change this immediately after your first login.</p>` : ""}
     <a href="${CLIENT_URL}/login" class="btn">Sign In to NiPOST Connect</a>
     <p style="font-size:12px;color:#4B6280;margin-top:16px">
-      If you did not expect this email, please contact ICT at ict@nglosa.com
+      If you did not expect this email, please contact ICT at ict@nipost.gov.ng
     </p>
   `);
   return send({ to: email, subject, html, text: `Welcome ${name}. Login at ${CLIENT_URL}/login` });
@@ -111,7 +111,7 @@ async function sendSuspensionNotice({ name, email, reason }) {
     <p>Your NiPOST Connect account has been temporarily suspended.</p>
     ${reason ? `<p>Reason: ${reason}</p>` : ""}
     <p>Please contact the ICT helpdesk or your HR department for further information.</p>
-    <p>📧 ict@nglosa.com | ☎ +234 9 234 8000 ext. 1200</p>
+    <p>📧 ict@nipost.gov.ng | ☎ +234 9 234 8000 ext. 1200</p>
   `);
   return send({ to: email, subject, html });
 }

@@ -77,7 +77,7 @@ sudo ln -s /etc/nginx/sites-available/nipost-connect /etc/nginx/sites-enabled/
 sudo nginx -t
 
 # Get SSL certificate
-sudo certbot --nginx -d connect.nglosa.com
+sudo certbot --nginx -d connect.nipost.gov.ng
 
 # Reload
 sudo systemctl reload nginx
@@ -119,12 +119,12 @@ crontab -e
 
 ## Step 6: Post-deployment checklist
 
-- [ ] `GET https://connect.nglosa.com/api/health` returns `{"status":"ok"}`
+- [ ] `GET https://connect.nipost.gov.ng/api/health` returns `{"status":"ok"}`
 - [ ] Login as PMG works
 - [ ] WebSocket connections work (check browser console for Socket.io connection)
 - [ ] File uploads work (upload a test image in a channel)
 - [ ] Push notifications work (subscribe in browser settings)
-- [ ] Password reset email arrives (test with a real nglosa.com address)
+- [ ] Password reset email arrives (test with a real nipost.gov.ng address)
 - [ ] SSL certificate is valid (padlock in browser)
 - [ ] PM2 shows `online` status: `pm2 status`
 - [ ] Backup runs: `sudo bash /var/www/nipost-connect/deploy/backup.sh`

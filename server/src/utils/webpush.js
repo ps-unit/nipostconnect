@@ -4,7 +4,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || "mailto:ict@nglosa.com",
+  process.env.VAPID_SUBJECT || "mailto:ict@nipost.gov.ng",
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );

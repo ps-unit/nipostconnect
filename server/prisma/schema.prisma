@@ -517,13 +517,13 @@ model OrganizationSettings {
   slogan          String   @default("Nigerian Postal Service — Internal Platform")
   logoUrl         String?
   accentColor     String   @default("#D4A843")
-  contactEmail    String   @default("ict@nglosa.com")
+  contactEmail    String   @default("ict@nipost.gov.ng")
   contactPhone    String   @default("+234 9 234 8000")
   address         String   @default("NiPOST Headquarters, Abuja")
   website         String   @default("https://www.nipost.gov.ng")
   welcomeMessage  String   @default("Welcome to NiPOST Connect. Please maintain professional conduct at all times.")
   maxFileSize     Int      @default(10) // MB
-  allowedDomain   String   @default("nglosa.com")
+  allowedDomain   String   @default("nipost.gov.ng")
   maintenanceMode Boolean  @default(false)
   updatedAt       DateTime @updatedAt
   updatedById     String?

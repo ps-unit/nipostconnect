@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
             <label style={{ display:"block", color:C.muted, fontSize:12, fontWeight:600,
               letterSpacing:"0.06em", marginBottom:6 }}>Official Email</label>
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-              placeholder="name@nglosa.com" required style={inp} />
+              placeholder="name@nipost.gov.ng" required style={inp} />
             <button type="submit" disabled={loading}
               style={{ width:"100%", padding:"11px", borderRadius:8, border:"none",
                 background:loading?"#1E3A5F":C.gold, color:loading?"#4B6280":"#0A1F44",

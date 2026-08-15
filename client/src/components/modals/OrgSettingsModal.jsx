@@ -290,7 +290,7 @@ export default function OrgSettingsModal({ onClose }) {
                   <input type="number" min={1} max={100}
                     value={form.maxFileSize||10} onChange={e=>set("maxFileSize",parseInt(e.target.value))} style={inp} />
                   <label style={lbl}>Allowed Email Domain</label>
-                  <input value={form.allowedDomain||"nglosa.com"}
+                  <input value={form.allowedDomain||"nipost.gov.ng"}
                     onChange={e=>set("allowedDomain",e.target.value)} style={inp} />
                   <div style={{ color:C.ghost, fontSize:12, marginTop:-10, marginBottom:14 }}>
                     Only email addresses ending in this domain can register.

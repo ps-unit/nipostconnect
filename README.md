@@ -34,7 +34,7 @@ Open **http://localhost:5173**
 
 **Default Super Admin login:**
 ```
-Email    : pmg@nglosa.com
+Email    : pmg@nipost.gov.ng
 Password : NiPOST@Admin2026
 ```
 > Change immediately after first login via Admin Panel → Staff tab.
@@ -173,14 +173,14 @@ PORT=5000
 NODE_ENV=development
 CLIENT_URL="http://localhost:5173"
 SERVER_URL="http://localhost:5000"
-ALLOWED_EMAIL_DOMAIN="nglosa.com"
+ALLOWED_EMAIL_DOMAIN="nipost.gov.ng"
 
 # Phase 2 — run: cd server && npm run vapid:generate
 VAPID_PUBLIC_KEY=your_public_key
 VAPID_PRIVATE_KEY=your_private_key
-VAPID_SUBJECT=mailto:ict@nglosa.com
+VAPID_SUBJECT=mailto:ict@nipost.gov.ng
 
-SEED_ADMIN_EMAIL="pmg@nglosa.com"
+SEED_ADMIN_EMAIL="pmg@nipost.gov.ng"
 SEED_ADMIN_PASSWORD="NiPOST@Admin2026"
 SEED_ADMIN_NAME="Postmaster General"
 SEED_ADMIN_STAFF_ID="NPS/HQ/2024/001"
@@ -206,7 +206,7 @@ pm2 save && pm2 startup
 Nginx config:
 ```nginx
 server {
-    server_name connect.nglosa.com;
+    server_name connect.nipost.gov.ng;
 
     location / {
         root /var/www/nipost-connect/client/dist;
@@ -244,4 +244,4 @@ server {
 ---
 
 *NiPOST Connect — Built for the Nigerian Postal Service*
-*ICT Directorate · ict@nglosa.com · ext. 1200*
+*ICT Directorate · ict@nipost.gov.ng · ext. 1200*

@@ -28,7 +28,7 @@ const upload = multer({
 // GET /api/hrmis/template — download CSV template
 router.get("/template", authenticate, isAdmin, (req, res) => {
   const headers = "name,staffId,email,phone,stateCode,departmentSlug,postOffice,role\n";
-  const example = "Aminu Ibrahim,NPS/KN/2025/001,aminu.ibrahim@nglosa.com,+2348012345678,KN,ict,Kano Central PO,STAFF\n";
+  const example = "Aminu Ibrahim,NPS/KN/2025/001,aminu.ibrahim@nipost.gov.ng,+2348012345678,KN,ict,Kano Central PO,STAFF\n";
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", "attachment; filename=nipost_staff_import_template.csv");
   res.send(headers + example);
@@ -66,7 +66,7 @@ router.post("/preview", authenticate, isAdmin, upload.single("file"), async (req
       const dept   = deptMap[row.departmentSlug?.toLowerCase()];
       if (!row.name?.trim())                          errors.push("Name required");
       if (!row.staffId?.trim())                       errors.push("Staff ID required");
-      if (!row.email?.includes("@nglosa.com"))        errors.push("Must be @nglosa.com email");
+      if (!row.email?.includes("@nipost.gov.ng"))        errors.push("Must be @nipost.gov.ng email");
       if (!state)                                     errors.push(`Unknown state code: ${row.stateCode}`);
       if (row.departmentSlug && !dept)                errors.push(`Unknown department: ${row.departmentSlug}`);
       if (!["STAFF","DEPT_ADMIN","STATE_ADMIN"].includes(row.role?.toUpperCase?.()))
@@ -115,7 +115,7 @@ router.post("/import", authenticate, isAdmin, upload.single("file"), async (req,
       try {
         const stateId = stateMap[row.stateCode?.toUpperCase()];
         const deptId  = deptMap[row.departmentSlug?.toLowerCase()];
-        if (!row.name || !row.staffId || !row.email?.includes("@nglosa.com") || !stateId) {
+        if (!row.name || !row.staffId || !row.email?.includes("@nipost.gov.ng") || !stateId) {
           errors.push({ row: i + 2, reason: "Validation failed — skipped" });
           skipped++;
           continue;

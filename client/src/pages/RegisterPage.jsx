@@ -33,7 +33,7 @@ export default function RegisterPage() {
       if (!form.name.trim()) return "Full name is required";
       if (!form.staffId.trim()) return "Staff ID is required";
       if (!form.email.includes("@")) return "Valid email required";
-      if (!form.email.endsWith("@nglosa.com")) return "Only @nglosa.com email addresses are permitted";
+      if (!form.email.endsWith("@nipost.gov.ng")) return "Only @nipost.gov.ng email addresses are permitted";
     }
     if (step === 1) {
       if (!form.stateId) return "State of posting is required";
@@ -98,8 +98,8 @@ export default function RegisterPage() {
             <label style={s.label}>Staff ID *</label>
             <input {...f("staffId")} placeholder="e.g. NPS/KN/2024/001" style={s.input} />
 
-            <label style={s.label}>Official Email * (@nglosa.com)</label>
-            <input {...f("email")} type="email" placeholder="aminu.musa@nglosa.com" style={s.input} />
+            <label style={s.label}>Official Email * (@nipost.gov.ng)</label>
+            <input {...f("email")} type="email" placeholder="aminu.musa@nipost.gov.ng" style={s.input} />
 
             <label style={s.label}>Phone Number</label>
             <input {...f("phone")} type="tel" placeholder="+234 xxx xxx xxxx" style={s.input} />

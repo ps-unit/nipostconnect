@@ -87,7 +87,7 @@ export default function LoginPage() {
             </label>
             <input type="email" value={form.email}
               onChange={e=>setForm({...form,email:e.target.value})}
-              placeholder="name@nglosa.com" required style={inp} />
+              placeholder="name@nipost.gov.ng" required style={inp} />
 
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
               <label style={{ color:C.muted, fontSize:12, fontWeight:600, letterSpacing:"0.06em" }}>

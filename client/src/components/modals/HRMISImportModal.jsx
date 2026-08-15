@@ -161,7 +161,7 @@ export default function HRMISImportModal({ onClose }) {
                 <div style={{ color:C.muted, fontSize:12, lineHeight:1.8 }}>
                   Required columns: <strong style={{color:C.textMid}}>name, staffId, email, stateCode, departmentSlug</strong><br/>
                   Optional: <strong style={{color:C.textMid}}>phone, postOffice, role</strong> (default: STAFF)<br/>
-                  Email must end in <strong style={{color:C.gold}}>@nglosa.com</strong><br/>
+                  Email must end in <strong style={{color:C.gold}}>@nipost.gov.ng</strong><br/>
                   Default password: <strong style={{color:C.gold}}>NiPOST@2026!</strong> (staff must change on first login)
                 </div>
                 <button onClick={downloadTemplate}
