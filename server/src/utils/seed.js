@@ -95,7 +95,11 @@ async function main() {
 
   const superAdmin = await prisma.user.upsert({
     where: { email: process.env.SEED_ADMIN_EMAIL || "pmg@nipost.gov.ng" },
-    update: {},
+    update: {
+      passwordHash,
+      name:         process.env.SEED_ADMIN_NAME    || "Postmaster General",
+      staffId:      process.env.SEED_ADMIN_STAFF_ID || "NPS/HQ/2024/001",
+    },
     create: {
       name:         process.env.SEED_ADMIN_NAME    || "Postmaster General",
       staffId:      process.env.SEED_ADMIN_STAFF_ID || "NPS/HQ/2024/001",
