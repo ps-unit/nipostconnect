@@ -8,7 +8,7 @@ const C = {
   text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 const inp = { width:"100%", padding:"11px 14px", borderRadius:8, border:`1px solid ${C.border}`,
-  background:"#081832", color:C.text, fontSize:15, marginBottom:14,
+  background:"#081832", color:C.text, marginBottom:14,
   boxSizing:"border-box", fontFamily:"'DM Sans',sans-serif", outline:"none",
   textAlign:"center", letterSpacing:"0.2em", fontSize:20 };
 

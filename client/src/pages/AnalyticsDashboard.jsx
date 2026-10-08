@@ -72,17 +72,17 @@ export default function AnalyticsDashboard({ onClose }) {
 
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`,
-        padding:"0 24px", display:"flex", alignItems:"center", gap:16, height:56, flexShrink:0 }}>
+        padding:"10px clamp(12px, 3vw, 24px)", display:"flex", alignItems:"center", gap:12, minHeight:56, flexShrink:0, flexWrap:"wrap" }}>
         <div style={{ fontSize:22 }}>📊</div>
-        <div>
-          <div style={{ color:C.text, fontWeight:700, fontSize:16 }}>Analytics Dashboard</div>
-          <div style={{ color:C.muted, fontSize:11 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ color:C.text, fontWeight:700, fontSize:16, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>Analytics Dashboard</div>
+          <div style={{ color:C.muted, fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
             NiPOST Connect · {lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString()}` : "Loading..."}
           </div>
         </div>
-        <div style={{ display:"flex", gap:8, marginLeft:"auto", alignItems:"center" }}>
+        <div style={{ display:"flex", gap:8, marginLeft:"auto", alignItems:"center", flexShrink: 0 }}>
           <button onClick={loadAll} disabled={loading}
-            style={{ padding:"6px 14px", borderRadius:7, border:`1px solid ${C.border}`,
+            style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${C.border}`,
               background:"transparent", color:loading?C.ghost:C.gold,
               cursor:loading?"default":"pointer", fontSize:12, fontWeight:600,
               fontFamily:"'DM Sans',sans-serif" }}>
@@ -102,7 +102,7 @@ export default function AnalyticsDashboard({ onClose }) {
         background:C.surface, overflowX:"auto", flexShrink:0 }}>
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            style={{ padding:"11px 20px", border:"none", background:"none", cursor:"pointer",
+            style={{ padding:"11px 18px", border:"none", background:"none", cursor:"pointer",
               fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif",
               color:activeTab===t?C.gold:C.muted, textTransform:"capitalize",
               borderBottom:activeTab===t?`2px solid ${C.gold}`:"2px solid transparent",
@@ -114,12 +114,12 @@ export default function AnalyticsDashboard({ onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
 
         {activeTab === "overview" && (
           <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
             <StatsGrid data={overview} loading={loading} />
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap:20 }}>
               <MessageVolumeChart data={volumeData} days={days} onDaysChange={setDays} loading={loading} />
               <ActivityFeed data={activity} loading={loading} />
             </div>

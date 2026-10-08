@@ -44,6 +44,7 @@ export const channelsAPI = {
   requestJoin:(id,r)=>api.post(`/channels/${id}/join-request`,{reason:r}),
   reviewRequest:(cId,rId,action,note)=>api.patch(`/channels/${cId}/join-request/${rId}`,{action,note}),
   archive:(id)=>api.delete(`/channels/${id}`),
+  pinned:(id)=>api.get(`/messages/${id}/pinned`),
 };
 export const messagesAPI = {
   list:(cId,p)=>api.get(`/messages/${cId}`,{params:p}), send:(cId,d)=>api.post(`/messages/${cId}`,d),

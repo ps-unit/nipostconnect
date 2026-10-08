@@ -63,19 +63,19 @@ export default function ReportsPage({ onClose }) {
 
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`,
-        padding:"0 24px", display:"flex", alignItems:"center", gap:16, height:56, flexShrink:0 }}>
+        padding:"10px clamp(12px, 3vw, 24px)", display:"flex", alignItems:"center", gap:12, minHeight:56, flexShrink:0, flexWrap:"wrap" }}>
         <div style={{ fontSize:22 }}>📈</div>
-        <div>
-          <div style={{ color:C.text, fontWeight:700, fontSize:16 }}>Performance Reports</div>
-          <div style={{ color:C.muted, fontSize:11 }}>Monthly staff & state activity</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ color:C.text, fontWeight:700, fontSize:16, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>Performance Reports</div>
+          <div style={{ color:C.muted, fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>Monthly staff & state activity</div>
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+        <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
           <input type="month" value={month} onChange={e=>setMonth(e.target.value)}
             style={{ padding:"5px 10px", borderRadius:7, border:`1px solid ${C.border}`,
               background:C.surfaceAlt, color:C.text, fontSize:13, cursor:"pointer",
               fontFamily:"'DM Sans',sans-serif", outline:"none" }} />
           <button onClick={()=>reportsAPI2.exportCSV(month)}
-            style={{ padding:"6px 14px", borderRadius:7, border:`1px solid ${C.border}`,
+            style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${C.border}`,
               background:"transparent", color:C.gold, cursor:"pointer", fontSize:12,
               fontWeight:600, fontFamily:"'DM Sans',sans-serif" }}>
             ⬇ Export CSV
@@ -91,12 +91,12 @@ export default function ReportsPage({ onClose }) {
 
       {/* Tabs */}
       <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`,
-        background:C.surface, flexShrink:0 }}>
+        background:C.surface, overflowX:"auto", flexShrink:0 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{ padding:"11px 20px", border:"none", background:"none", cursor:"pointer",
+            style={{ padding:"11px 18px", border:"none", background:"none", cursor:"pointer",
               fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif",
-              color:tab===t.id?C.gold:C.muted,
+              color:tab===t.id?C.gold:C.muted, whiteSpace:"nowrap",
               borderBottom:tab===t.id?`2px solid ${C.gold}`:"2px solid transparent" }}>
             {t.label}
           </button>
@@ -104,7 +104,7 @@ export default function ReportsPage({ onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
 
         {loading && <div style={{ textAlign:"center", padding:40, color:C.muted, fontSize:13 }}>Loading report...</div>}
 
@@ -112,7 +112,7 @@ export default function ReportsPage({ onClose }) {
         {tab === "staff" && !loading && (
           <>
             {/* Summary bar */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap:12, marginBottom:20 }}>
               {[
                 { label:"Total Staff",  value:staffData.length,                           color:C.gold },
                 { label:"Active",       value:staffData.filter(u=>u.totalMessages>0).length, color:"#22C55E" },

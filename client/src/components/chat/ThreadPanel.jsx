@@ -48,7 +48,7 @@ function ReplyBubble({ msg }) {
   );
 }
 
-export default function ThreadPanel({ parentMessage, channelId, onClose }) {
+export default function ThreadPanel({ parentMessage, channelId, onClose, isMobile }) {
   const { user }   = useAuth();
   const { on }     = useSocket();
   const [replies, setReplies] = useState([]);
@@ -99,21 +99,49 @@ export default function ThreadPanel({ parentMessage, channelId, onClose }) {
   if (!parentMessage) return null;
 
   return (
-    <div style={{ width:360, borderLeft:`1px solid ${C.border}`, display:"flex",
-      flexDirection:"column", background:C.surface, flexShrink:0, height:"100%" }}>
+    <div
+      className={isMobile ? "animate-slide-right" : ""}
+      style={{
+        width: isMobile ? "100%" : 360,
+        position: isMobile ? "fixed" : "relative",
+        inset: isMobile ? 0 : "auto",
+        zIndex: isMobile ? 350 : "auto",
+        borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+        display: "flex",
+        flexDirection: "column",
+        background: C.surface,
+        flexShrink: 0,
+        height: "100%",
+      }}
+    >
 
       {/* Header */}
-      <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.border}`,
-        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div>
-          <div style={{ color:C.text, fontWeight:700, fontSize:14 }}>🧵 Thread</div>
-          <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>
-            {replies.length} {replies.length === 1 ? "reply" : "replies"}
+      <div style={{
+        padding: "14px 16px", borderBottom: `1px solid ${C.border}`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isMobile && (
+            <button
+              onClick={onClose}
+              style={{
+                background: "none", border: "none", color: C.gold, cursor: "pointer",
+                fontSize: 16, fontWeight: 700, padding: "4px 8px 4px 0",
+              }}
+            >
+              ‹ Back
+            </button>
+          )}
+          <div>
+            <div style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>🧵 Thread</div>
+            <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>
+              {replies.length} {replies.length === 1 ? "reply" : "replies"}
+            </div>
           </div>
         </div>
         <button onClick={onClose}
-          style={{ background:"none", border:"none", color:C.muted,
-            fontSize:18, cursor:"pointer", padding:"2px 6px" }}>✕</button>
+          style={{ background: "none", border: "none", color: C.muted,
+            fontSize: 18, cursor: "pointer", padding: "4px 8px" }}>✕</button>
       </div>
 
       {/* Original message */}
@@ -148,7 +176,10 @@ export default function ThreadPanel({ parentMessage, channelId, onClose }) {
       </div>
 
       {/* Compose reply */}
-      <div style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
+      <div style={{
+        padding: isMobile ? "10px 12px calc(10px + var(--safe-bottom, 0px))" : "10px 12px",
+        borderTop: `1px solid ${C.border}`,
+      }}>
         <div style={{ display:"flex", gap:8, alignItems:"flex-end",
           background:C.surfaceAlt, borderRadius:10,
           border:`1px solid ${C.border}`, padding:"0 12px" }}>
@@ -156,7 +187,7 @@ export default function ThreadPanel({ parentMessage, channelId, onClose }) {
             onKeyDown={handleKeyDown}
             placeholder="Reply in thread..."
             rows={1} style={{ flex:1, background:"none", border:"none",
-              color:C.text, fontSize:13, padding:"10px 0",
+              color:C.text, fontSize: isMobile ? 16 : 13, padding:"10px 0",
               resize:"none", outline:"none", fontFamily:"'DM Sans',sans-serif",
               maxHeight:100, overflowY:"auto" }} />
           <button onClick={sendReply} disabled={!input.trim() || sending}

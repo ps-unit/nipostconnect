@@ -235,6 +235,7 @@ model Attachment {
   thumbnailUrl String?
   messageId    String
   message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt    DateTime? @default(now())
   uploadedAt   DateTime @default(now())
 
   @@map("attachments")

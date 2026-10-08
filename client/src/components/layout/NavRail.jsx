@@ -1,5 +1,4 @@
-
-// client/src/components/layout/NavRail.jsx — v6+7
+// client/src/components/layout/NavRail.jsx — Responsive version
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
@@ -7,15 +6,18 @@ import NotificationBell from "../shared/NotificationBell";
 import { colors } from "../shared/styles";
 
 const NAV = [
-  { id:"channels",  icon:"🏠", label:"Channels"          },
-  { id:"dms",       icon:"💬", label:"Direct Messages"   },
-  { id:"discover",  icon:"🔍", label:"Discover Channels" },
-  { id:"directory", icon:"👥", label:"Staff Directory"   },
+  { id: "channels",  icon: "🏠", label: "Channels"          },
+  { id: "dms",       icon: "💬", label: "Direct Messages"   },
+  { id: "discover",  icon: "🔍", label: "Discover"          },
+  { id: "directory", icon: "👥", label: "Directory"         },
 ];
 
-function getInitials(name="") { return name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase(); }
+function getInitials(name = "") {
+  return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
 
 export default function NavRail({
+  isMobile,
   activeView, setActiveView,
   onAdminClick, onAnalyticsClick, onReportsClick,
   onScheduleClick, onBulkMemoClick, onHRMISClick,
@@ -24,72 +26,305 @@ export default function NavRail({
   const { user, logout, isAdmin, isSuperAdmin } = useAuth();
   const { connected } = useSocket();
   const [showMenu, setShowMenu] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
 
   const handleNavigation = (url) => {
     if (url.startsWith("/channel/")) setActiveView("channels");
     else if (url.startsWith("/dm/")) setActiveView("dms");
     setShowMenu(false);
+    setShowAdminMenu(false);
   };
 
   const adminItems = [
-    { icon:"🛡️", label:"Admin Panel",           action:onAdminClick      },
-    { icon:"📊", label:"Analytics",              action:onAnalyticsClick  },
-    { icon:"📈", label:"Performance Reports",    action:onReportsClick    },
-    { icon:"⏰", label:"Schedule Message",       action:onScheduleClick   },
-    { icon:"📬", label:"Bulk Memo",              action:onBulkMemoClick   },
-    { icon:"🤖", label:"AI Memo Drafting",       action:onAIMemoClick     },
+    { icon: "🛡️", label: "Admin Panel",            action: onAdminClick       },
+    { icon: "📊", label: "Analytics",               action: onAnalyticsClick   },
+    { icon: "📈", label: "Performance Reports",     action: onReportsClick     },
+    { icon: "⏰", label: "Schedule Message",        action: onScheduleClick    },
+    { icon: "📬", label: "Bulk Memo",               action: onBulkMemoClick    },
+    { icon: "🤖", label: "AI Memo Drafting",        action: onAIMemoClick      },
     ...(isSuperAdmin ? [
-      { icon:"🏢", label:"Organisation Settings", action:onOrgSettingsClick },
-      { icon:"📥", label:"Import Staff (HRMIS)",  action:onHRMISClick      },
+      { icon: "🏢", label: "Organisation Settings",  action: onOrgSettingsClick },
+      { icon: "📥", label: "Import Staff (HRMIS)",   action: onHRMISClick       },
     ] : []),
   ];
 
-  return (
-    <div style={{ width:64, background:"#050F20", display:"flex", flexDirection:"column",
-      alignItems:"center", padding:"12px 0", gap:4,
-      borderRight:`1px solid ${colors.borderDim}`, flexShrink:0, position:"relative", zIndex:100 }}>
+  // ── Mobile Bottom Navigation Bar ──────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <>
+        <div style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "calc(56px + var(--safe-bottom, 0px))",
+          background: "#050F20",
+          borderTop: `1px solid ${colors.borderDim}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-around",
+          paddingBottom: "var(--safe-bottom, 0px)",
+          zIndex: 300,
+          boxShadow: "0 -4px 16px rgba(0,0,0,0.4)",
+        }}>
+          {NAV.map(n => {
+            const active = activeView === n.id;
+            return (
+              <button
+                key={n.id}
+                onClick={() => { setActiveView(n.id); setShowMenu(false); }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  color: active ? colors.gold : colors.muted,
+                  transition: "all 0.15s",
+                  minWidth: 54,
+                }}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{n.icon}</span>
+                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{n.label}</span>
+              </button>
+            );
+          })}
 
-      <div style={{ width:44, height:44, borderRadius:14, background:colors.gold,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:22, marginBottom:8 }} title="NiPOST Connect">
+          {/* More / User Menu Button */}
+          <button
+            onClick={() => setShowMenu(s => !s)}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "6px 12px",
+              borderRadius: 8,
+              color: showMenu ? colors.gold : colors.muted,
+              minWidth: 54,
+            }}
+          >
+            <div style={{
+              width: 22,
+              height: 22,
+              borderRadius: "50%",
+              background: "#0D2244",
+              border: `1px solid ${showMenu ? colors.gold : colors.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 10,
+              fontWeight: 700,
+              color: colors.gold,
+            }}>
+              {getInitials(user?.name)}
+            </div>
+            <span style={{ fontSize: 10, fontWeight: showMenu ? 700 : 500 }}>More</span>
+          </button>
+        </div>
+
+        {/* Mobile Slide-up Menu */}
+        {showMenu && (
+          <>
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.65)",
+                backdropFilter: "blur(4px)",
+                zIndex: 400,
+              }}
+              onClick={() => setShowMenu(false)}
+            />
+            <div
+              className="animate-slide-up"
+              style={{
+                position: "fixed",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: "#081A35",
+                borderTop: `1px solid ${colors.border}`,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: "18px 20px calc(24px + var(--safe-bottom, 0px))",
+                zIndex: 500,
+                maxHeight: "82vh",
+                overflowY: "auto",
+                boxShadow: "0 -8px 32px rgba(0,0,0,0.7)",
+              }}
+            >
+              {/* Handlebar */}
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: colors.border, margin: "0 auto 16px" }} />
+
+              {/* User profile summary */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: `1px solid ${colors.borderDim}` }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%", background: "#0D2244",
+                  border: `1px solid ${colors.border}`, display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: 16, fontWeight: 700, color: colors.gold,
+                }}>
+                  {getInitials(user?.name)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: colors.text, fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user?.name}
+                  </div>
+                  <div style={{ color: colors.muted, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: "50%",
+                      background: connected ? colors.online : colors.idle,
+                    }} />
+                    {connected ? "Connected" : "Reconnecting..."} · {user?.role?.replace("_", " ")}
+                  </div>
+                </div>
+                <NotificationBell onNavigate={handleNavigation} />
+              </div>
+
+              {/* Action list */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
+                <button
+                  onClick={() => { onSettingsClick?.(); setShowMenu(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.borderDim}`,
+                    color: colors.text, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>⚙️</span>
+                  <span>App Settings</span>
+                </button>
+
+                {isAdmin && (
+                  <>
+                    <div style={{ color: colors.gold, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", marginTop: 10, marginBottom: 2 }}>
+                      ADMINISTRATIVE TOOLS
+                    </div>
+                    {adminItems.map(item => (
+                      <button
+                        key={item.label}
+                        onClick={() => { item.action?.(); setShowMenu(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                          borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.borderDim}`,
+                          color: colors.textMid, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                          textAlign: "left",
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                <button
+                  onClick={() => { setShowMenu(false); if (window.confirm("Sign out of NiPOST Connect?")) logout(); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",
+                    color: "#F87171", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                    marginTop: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>🚪</span>
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // ── Desktop / Tablet Vertical NavRail ─────────────────────────────────────
+  return (
+    <div style={{
+      width: 64,
+      background: "#050F20",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "12px 0",
+      gap: 4,
+      borderRight: `1px solid ${colors.borderDim}`,
+      flexShrink: 0,
+      position: "relative",
+      zIndex: 100,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 14, background: colors.gold,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 22, marginBottom: 8,
+      }} title="NiPOST Connect">
         📮
       </div>
-      <div style={{ width:32, height:1, background:colors.border, margin:"4px 0" }} />
+      <div style={{ width: 32, height: 1, background: colors.border, margin: "4px 0" }} />
 
       {NAV.map(n => (
-        <NavBtn key={n.id} icon={n.icon} label={n.label}
-          active={activeView===n.id}
-          onClick={()=>{ setActiveView(n.id); setShowMenu(false); }} />
+        <NavBtn
+          key={n.id}
+          icon={n.icon}
+          label={n.label}
+          active={activeView === n.id}
+          onClick={() => { setActiveView(n.id); setShowAdminMenu(false); }}
+        />
       ))}
 
-      <div style={{ flex:1 }} />
+      <div style={{ flex: 1 }} />
 
       <NotificationBell onNavigate={handleNavigation} />
-      <NavBtn icon="⚙️" label="Settings" active={false}
-        onClick={()=>{ onSettingsClick?.(); setShowMenu(false); }} />
+      <NavBtn
+        icon="⚙️"
+        label="Settings"
+        active={false}
+        onClick={() => { onSettingsClick?.(); setShowAdminMenu(false); }}
+      />
 
       {isAdmin && (
-        <div style={{ position:"relative" }}>
-          <NavBtn icon="🛡️" label="Admin Tools" active={showMenu} onClick={()=>setShowMenu(s=>!s)} />
-          {showMenu && (
+        <div style={{ position: "relative" }}>
+          <NavBtn
+            icon="🛡️"
+            label="Admin Tools"
+            active={showAdminMenu}
+            onClick={() => setShowAdminMenu(s => !s)}
+          />
+          {showAdminMenu && (
             <>
-              <div style={{ position:"fixed", inset:0, zIndex:400 }} onClick={()=>setShowMenu(false)} />
-              <div style={{ position:"absolute", left:"calc(100% + 10px)", bottom:0,
-                background:"#0D2244", border:`1px solid ${colors.border}`,
-                borderRadius:12, padding:6, minWidth:230, zIndex:500,
-                boxShadow:"0 8px 32px rgba(0,0,0,0.6)" }}>
-                <div style={{ padding:"6px 12px 8px", borderBottom:`1px solid ${colors.border}`, marginBottom:4 }}>
-                  <div style={{ color:colors.gold, fontSize:11, fontWeight:700, letterSpacing:"0.06em" }}>ADMIN TOOLS</div>
+              <div style={{ position: "fixed", inset: 0, zIndex: 400 }} onClick={() => setShowAdminMenu(false)} />
+              <div style={{
+                position: "absolute", left: "calc(100% + 10px)", bottom: 0,
+                background: "#0D2244", border: `1px solid ${colors.border}`,
+                borderRadius: 12, padding: 6, minWidth: 230, zIndex: 500,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+              }}>
+                <div style={{ padding: "6px 12px 8px", borderBottom: `1px solid ${colors.border}`, marginBottom: 4 }}>
+                  <div style={{ color: colors.gold, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em" }}>ADMIN TOOLS</div>
                 </div>
                 {adminItems.map(item => (
-                  <button key={item.label} onClick={()=>{ item.action?.(); setShowMenu(false); }}
-                    style={{ display:"flex", alignItems:"center", gap:10, width:"100%",
-                      padding:"9px 12px", borderRadius:7, border:"none", background:"transparent",
-                      cursor:"pointer", fontFamily:"'DM Sans',sans-serif", textAlign:"left",
-                      color:colors.textMid, fontSize:13 }}
-                    onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.07)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{ fontSize:16, width:22, textAlign:"center" }}>{item.icon}</span>
+                  <button
+                    key={item.label}
+                    onClick={() => { item.action?.(); setShowAdminMenu(false); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, width: "100%",
+                      padding: "9px 12px", borderRadius: 7, border: "none", background: "transparent",
+                      cursor: "pointer", fontFamily: "'DM Sans',sans-serif", textAlign: "left",
+                      color: colors.textMid, fontSize: 13,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.07)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{item.icon}</span>
                     {item.label}
                   </button>
                 ))}
@@ -99,16 +334,24 @@ export default function NavRail({
         </div>
       )}
 
-      <div title={connected?"Connected":"Reconnecting..."} style={{
-        width:8, height:8, borderRadius:"50%",
-        background:connected?colors.online:colors.idle, margin:"4px 0" }} />
+      <div
+        title={connected ? "Connected" : "Reconnecting..."}
+        style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: connected ? colors.online : colors.idle, margin: "4px 0",
+        }}
+      />
 
-      <div onClick={()=>{ if(window.confirm("Sign out?")) logout(); }}
+      <div
+        onClick={() => { if (window.confirm("Sign out?")) logout(); }}
         title={`${user?.name} — click to sign out`}
-        style={{ width:36, height:36, borderRadius:"50%", background:"#0D2244",
-          border:`1px solid ${colors.border}`, display:"flex", alignItems:"center",
-          justifyContent:"center", cursor:"pointer", fontSize:13,
-          fontWeight:700, color:colors.gold, marginTop:4 }}>
+        style={{
+          width: 36, height: 36, borderRadius: "50%", background: "#0D2244",
+          border: `1px solid ${colors.border}`, display: "flex", alignItems: "center",
+          justifyContent: "center", cursor: "pointer", fontSize: 13,
+          fontWeight: 700, color: colors.gold, marginTop: 4,
+        }}
+      >
         {getInitials(user?.name)}
       </div>
     </div>
@@ -117,14 +360,18 @@ export default function NavRail({
 
 function NavBtn({ icon, label, active, onClick }) {
   return (
-    <button onClick={onClick} title={label} style={{
-      width:44, height:44, borderRadius:12, border:"none", cursor:"pointer",
-      fontSize:20, display:"flex", alignItems:"center", justifyContent:"center",
-      background:active?"rgba(212,168,67,0.15)":"transparent",
-      outline:active?`2px solid ${colors.gold}`:"none", transition:"background 0.15s",
-    }}
-    onMouseEnter={e=>{ if(!active) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
-    onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}>
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        width: 44, height: 44, borderRadius: 12, border: "none", cursor: "pointer",
+        fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center",
+        background: active ? "rgba(212,168,67,0.15)" : "transparent",
+        outline: active ? `2px solid ${colors.gold}` : "none", transition: "background 0.15s",
+      }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+    >
       {icon}
     </button>
   );

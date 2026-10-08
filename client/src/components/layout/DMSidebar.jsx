@@ -16,7 +16,7 @@ function Avatar({ name = "", size = 32 }) {
   );
 }
 
-export default function DMSidebar({ activeDMUserId, onSelectDM }) {
+export default function DMSidebar({ activeDMUserId, onSelectDM, isMobile }) {
   const { isOnline, on } = useSocket();
   const [convos, setConvos] = useState([]);
 
@@ -33,7 +33,15 @@ export default function DMSidebar({ activeDMUserId, onSelectDM }) {
   }, [on]);
 
   return (
-    <div style={{ width: 240, background: colors.surface, borderRight: `1px solid ${colors.borderDim}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+    <div style={{
+      width: isMobile ? "100%" : 240,
+      background: colors.surface,
+      borderRight: isMobile ? "none" : `1px solid ${colors.borderDim}`,
+      display: "flex",
+      flexDirection: "column",
+      flexShrink: 0,
+      height: "100%",
+    }}>
       <div style={{ padding: "14px 12px 10px", borderBottom: `1px solid ${colors.borderDim}` }}>
         <div style={{ color: colors.text, fontWeight: 700, fontSize: 15 }}>Direct Messages</div>
         <div style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>{convos.length} conversation{convos.length !== 1 ? "s" : ""}</div>

@@ -25,18 +25,18 @@ export default function AdminPanel({ onClose, onChannelCreated, onDeptCreated })
   return (
     <div style={s.modalOverlay}>
       <div style={{ background:colors.surfaceAlt, border:`1px solid ${colors.border}`, borderRadius:16,
-        width:"min(820px,96vw)", maxHeight:"92vh", overflow:"hidden", display:"flex", flexDirection:"column" }}>
+        width:"min(860px, 96vw)", maxHeight:"calc(100dvh - 24px)", overflow:"hidden", display:"flex", flexDirection:"column" }}>
 
         {/* Header */}
-        <div style={{ padding:"18px 24px", borderBottom:`1px solid ${colors.border}`,
+        <div style={{ padding:"14px clamp(14px, 3vw, 24px)", borderBottom:`1px solid ${colors.border}`,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <h3 style={{ color:colors.gold, margin:0, fontSize:18 }}>🛡️ Admin Panel</h3>
           <button onClick={onClose}
-            style={{ background:"none", border:"none", color:colors.muted, fontSize:20, cursor:"pointer" }}>✕</button>
+            style={{ background:"none", border:"none", color:colors.muted, fontSize:20, cursor:"pointer", padding:"4px 8px" }}>✕</button>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display:"flex", borderBottom:`1px solid ${colors.border}`, overflowX:"auto" }}>
+        <div style={{ display:"flex", borderBottom:`1px solid ${colors.border}`, overflowX:"auto", flexShrink: 0 }}>
           {visibleTabs.map(t => (
             <button key={t.id} onClick={()=>setTab(t.id)}
               style={{ padding:"11px 16px", border:"none", background:"none", cursor:"pointer",
@@ -49,7 +49,7 @@ export default function AdminPanel({ onClose, onChannelCreated, onDeptCreated })
         </div>
 
         {/* Content */}
-        <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+        <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
           {tab==="overview"    && <OverviewTab />}
           {tab==="departments" && <DepartmentsTab onCreated={onDeptCreated} />}
           {tab==="requests"    && <RequestsTab />}

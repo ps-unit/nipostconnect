@@ -16,7 +16,7 @@ const SECTION_LABELS = {
   DEPARTMENT:   { label: "DEPARTMENTS",   icon: "🏢" },
 };
 
-export default function ChannelSidebar({ channels, activeChannelId, onSelectChannel, unreadMap, onChannelCreated, searchMode }) {
+export default function ChannelSidebar({ channels, activeChannelId, onSelectChannel, unreadMap, onChannelCreated, searchMode, isMobile }) {
   const { isAdmin, user } = useAuth();
   const [search, setSearch]     = useState("");
   const [expanded, setExpanded] = useState({ ANNOUNCEMENT: true, EMERGENCY: true, SUGGESTION: true, GENERAL: true, STATE: true, DEPARTMENT: true, POST_OFFICE: false });
@@ -84,7 +84,7 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
               style={{
                 width: "100%", background: active ? "rgba(212,168,67,0.1)" : "transparent",
                 border: "none", display: "flex", alignItems: "center",
-                gap: 8, padding: "6px 12px 6px 22px",
+                gap: 8, padding: isMobile ? "9px 14px 9px 20px" : "6px 12px 6px 22px",
                 cursor: "pointer", textAlign: "left", borderRadius: 0,
                 borderLeft: active ? `3px solid ${colors.gold}` : "3px solid transparent",
                 opacity: joining === ch.id ? 0.5 : 1,
@@ -115,10 +115,13 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
 
   return (
     <div style={{
-      width: 240, background: colors.surface,
-      display: "flex", flexDirection: "column",
-      borderRight: `1px solid ${colors.borderDim}`,
+      width: isMobile ? "100%" : 240,
+      background: colors.surface,
+      display: "flex",
+      flexDirection: "column",
+      borderRight: isMobile ? "none" : `1px solid ${colors.borderDim}`,
       flexShrink: 0,
+      height: "100%",
     }}>
       {/* Header */}
       <div style={{ padding: "14px 12px 10px", borderBottom: `1px solid ${colors.borderDim}` }}>

@@ -169,7 +169,7 @@ export default function StaffDirectoryPage({ onOpenDM }) {
 
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`,
-        padding:"16px 24px", flexShrink:0 }}>
+        padding:"14px clamp(12px, 3vw, 24px)", flexShrink:0 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
           <h2 style={{ color:C.text, fontSize:18, fontWeight:700, margin:0 }}>
             👥 Staff Directory
@@ -234,7 +234,7 @@ export default function StaffDirectoryPage({ onOpenDM }) {
       </div>
 
       {/* Grid */}
-      <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
         {loading && page === 1 && (
           <div style={{ textAlign:"center", padding:40, color:C.muted, fontSize:13 }}>Loading staff...</div>
         )}
@@ -247,7 +247,7 @@ export default function StaffDirectoryPage({ onOpenDM }) {
           </div>
         )}
 
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))", gap:12 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap:12 }}>
           {filtered.map(u => (
             <StaffCard key={u.id} user={u} onMessage={handleMessage} onlineUsers={onlineUsers} />
           ))}

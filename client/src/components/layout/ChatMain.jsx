@@ -9,7 +9,19 @@ import FileUpload from "../chat/FileUpload";
 import ComposeModal from "../modals/ComposeModal";
 import { colors, CHANNEL_ICONS } from "../shared/styles";
 
-export default function ChatMain({ channel, dmUserId, onToggleMembers, showMembers }) {
+export default function ChatMain({
+  channel,
+  dmUserId,
+  onToggleMembers,
+  showMembers,
+  onOpenThread,
+  onTogglePinned,
+  showPinned,
+  onOpenAIMemo,
+  isMobile,
+  onBack,
+  activeView,
+}) {
   const { user, isAdmin }           = useAuth();
   const { on, startTyping, stopTyping } = useSocket();
 
@@ -23,6 +35,7 @@ export default function ChatMain({ channel, dmUserId, onToggleMembers, showMembe
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [uploading, setUploading]         = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showActionMenu, setShowActionMenu] = useState(false);
   const chatEndRef  = useRef();
   const typingTimer = useRef();
   const channelId   = channel?.id;
@@ -131,64 +144,164 @@ export default function ChatMain({ channel, dmUserId, onToggleMembers, showMembe
     <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, background:colors.bg }}>
 
       {/* Header */}
-      <div style={{ height:52, background:colors.surface, borderBottom:`1px solid ${colors.borderDim}`,
-        display:"flex", alignItems:"center", padding:"0 16px", gap:10, flexShrink:0 }}>
-        <span style={{ fontSize:18 }}>{channel ? CHANNEL_ICONS[channel.type] : "💬"}</span>
-        <div style={{ minWidth:0 }}>
-          <div style={{ color:colors.text, fontWeight:600, fontSize:14,
-            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+      <div style={{
+        height: 52, background: colors.surface, borderBottom: `1px solid ${colors.borderDim}`,
+        display: "flex", alignItems: "center", padding: isMobile ? "0 10px" : "0 16px",
+        gap: isMobile ? 8 : 10, flexShrink: 0,
+      }}>
+        {isMobile && onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Back"
+            style={{
+              background: "none", border: "none", color: colors.gold, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 3, padding: "6px 6px 6px 0",
+              fontSize: 14, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 18 }}>‹</span>
+            <span>{activeView === "dms" ? "DMs" : "Channels"}</span>
+          </button>
+        )}
+
+        <span style={{ fontSize: 18, flexShrink: 0 }}>{channel ? CHANNEL_ICONS[channel.type] : "💬"}</span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{
+            color: colors.text, fontWeight: 700, fontSize: isMobile ? 14 : 15,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
             {channel ? `#${channel.name}` : "Direct Message"}
           </div>
           {channel?.description && (
-            <div style={{ color:colors.muted, fontSize:11,
-              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            <div style={{
+              color: colors.muted, fontSize: 11,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
               {channel.description}
             </div>
           )}
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
-          {isAdmin && channel && [
-            {icon:"🗳️", label:"Create Poll",       action:()=>setComposeType("poll")},
-            {icon:"📄", label:"Draft Memo",         action:()=>setComposeType("memo")},
-            {icon:"📢", label:"Post Announcement",  action:()=>setComposeType("announcement")},
-          ].map(b=><IconBtn key={b.label} {...b} />)}
-          <IconBtn icon="👥" label="Toggle Members" action={onToggleMembers} active={showMembers} />
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: isMobile ? 4 : 6, alignItems: "center", flexShrink: 0 }}>
+          {channel && (
+            <IconBtn icon="📌" label="Pinned Messages" action={onTogglePinned} active={showPinned} />
+          )}
+          {channel && (
+            <IconBtn icon="👥" label="Members" action={onToggleMembers} active={showMembers} />
+          )}
+
+          {/* Desktop admin quick buttons */}
+          {!isMobile && isAdmin && channel && (
+            <>
+              <IconBtn icon="🤖" label="AI Memo" action={onOpenAIMemo} />
+              <IconBtn icon="🗳️" label="Create Poll" action={() => setComposeType("poll")} />
+              <IconBtn icon="📄" label="Draft Memo" action={() => setComposeType("memo")} />
+              <IconBtn icon="📢" label="Post Announcement" action={() => setComposeType("announcement")} />
+            </>
+          )}
+
+          {/* Mobile admin dropdown */}
+          {isMobile && isAdmin && channel && (
+            <div style={{ position: "relative" }}>
+              <IconBtn icon="•••" label="More Options" action={() => setShowActionMenu(s => !s)} active={showActionMenu} />
+              {showActionMenu && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => setShowActionMenu(false)} />
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 6px)", right: 0,
+                    background: "#0D2244", border: `1px solid ${colors.border}`,
+                    borderRadius: 12, padding: 6, minWidth: 190, zIndex: 400,
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  }}>
+                    <button
+                      onClick={() => { onOpenAIMemo?.(); setShowActionMenu(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%",
+                        padding: "9px 12px", borderRadius: 8, border: "none", background: "transparent",
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                        color: colors.textMid, fontSize: 13,
+                      }}
+                    >
+                      <span>🤖</span> AI Memo Drafting
+                    </button>
+                    <button
+                      onClick={() => { setComposeType("announcement"); setShowActionMenu(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%",
+                        padding: "9px 12px", borderRadius: 8, border: "none", background: "transparent",
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                        color: colors.textMid, fontSize: 13,
+                      }}
+                    >
+                      <span>📢</span> Post Announcement
+                    </button>
+                    <button
+                      onClick={() => { setComposeType("memo"); setShowActionMenu(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%",
+                        padding: "9px 12px", borderRadius: 8, border: "none", background: "transparent",
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                        color: colors.textMid, fontSize: 13,
+                      }}
+                    >
+                      <span>📄</span> Draft Memo
+                    </button>
+                    <button
+                      onClick={() => { setComposeType("poll"); setShowActionMenu(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%",
+                        padding: "9px 12px", borderRadius: 8, border: "none", background: "transparent",
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                        color: colors.textMid, fontSize: 13,
+                      }}
+                    >
+                      <span>🗳️</span> Create Poll
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{ flex:1, overflowY:"auto", padding:"12px 0" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 0" }}>
         {hasMore && (
-          <div style={{ textAlign:"center", padding:"8px 0" }}>
-            <button onClick={loadMore} style={{ background:"none", border:`1px solid ${colors.border}`,
-              borderRadius:8, padding:"5px 16px", color:colors.muted, cursor:"pointer", fontSize:12 }}>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <button onClick={loadMore} style={{ background: "none", border: `1px solid ${colors.border}`,
+              borderRadius: 8, padding: "5px 16px", color: colors.muted, cursor: "pointer", fontSize: 12 }}>
               Load earlier messages
             </button>
           </div>
         )}
-        {loading && <div style={{ textAlign:"center", padding:40, color:colors.muted, fontSize:13 }}>Loading...</div>}
-        {!loading && messages.length===0 && (
-          <div style={{ textAlign:"center", padding:60, color:colors.ghost }}>
-            <div style={{ fontSize:40, marginBottom:10 }}>💬</div>
-            <div style={{ fontSize:16, color:colors.muted, marginBottom:6 }}>Start the conversation</div>
-            <div style={{ fontSize:13 }}>Be the first to post in #{channel?.name}</div>
+        {loading && <div style={{ textAlign: "center", padding: 40, color: colors.muted, fontSize: 13 }}>Loading...</div>}
+        {!loading && messages.length === 0 && (
+          <div style={{ textAlign: "center", padding: 60, color: colors.ghost }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
+            <div style={{ fontSize: 16, color: colors.muted, marginBottom: 6 }}>Start the conversation</div>
+            <div style={{ fontSize: 13 }}>Be the first to post in #{channel?.name}</div>
           </div>
         )}
         {messages.map(msg => (
           <MessageBubble key={msg.id} msg={msg} currentUserId={user.id} isAdmin={isAdmin}
-            onVote={handleVote} onReact={handleReact} onPin={handlePin} onDelete={handleDelete} />
+            onVote={handleVote} onReact={handleReact} onPin={handlePin} onDelete={handleDelete}
+            onOpenThread={onOpenThread} />
         ))}
-        {typingUsers.length>0 && (
-          <div style={{ padding:"4px 16px", color:colors.muted, fontSize:12, fontStyle:"italic" }}>
-            {typingUsers.map(u=>u.name).join(", ")} {typingUsers.length===1?"is":"are"} typing...
+        {typingUsers.length > 0 && (
+          <div style={{ padding: "4px 16px", color: colors.muted, fontSize: 12, fontStyle: "italic" }}>
+            {typingUsers.map(u => u.name).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
           </div>
         )}
         <div ref={chatEndRef} />
       </div>
 
       {/* Compose */}
-      <div style={{ padding:"10px 14px 14px", borderTop:`1px solid ${colors.borderDim}`,
-        background:colors.surface, flexShrink:0 }}>
+      <div style={{
+        padding: isMobile ? "8px 10px calc(10px + var(--safe-bottom, 0px))" : "10px 14px 14px",
+        borderTop: `1px solid ${colors.borderDim}`,
+        background: colors.surface, flexShrink: 0,
+      }}>
         {canPost ? (
           <>
             {/* Phase 2: File upload panel */}

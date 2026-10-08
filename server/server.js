@@ -1,4 +1,6 @@
 // NiPOST Connect v6 — Production-ready Main Server
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 require("dotenv").config();
 const { validateEnv } = require("./src/utils/validateEnv");
 validateEnv(); // ← Fail fast if required env vars are missing
@@ -14,6 +16,7 @@ const { PrismaClient } = require("@prisma/client");
 const initSocket = require("./src/socket");
 const { initScheduler } = require("./src/utils/scheduler");
 const { initSentry, sentryRequestHandler, sentryErrorHandler, captureException } = require("./src/utils/sentry");
+const { startDbProxy } = require("./src/utils/dbProxy");
 
 // ── All routes ────────────────────────────────────────────────────────────────
 const authRoutes         = require("./src/routes/auth");
@@ -129,6 +132,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {
   try {
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("127.0.0.1:5433")) {
+      await startDbProxy();
+    }
     await prisma.$connect();
     console.log("   Database    : ✅ Connected");
     initScheduler(io);

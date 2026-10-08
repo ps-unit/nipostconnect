@@ -13,7 +13,7 @@ const MSG_TYPE_BAR = {
   SUGGESTION:"#22C55E", POLL:"#2563EB",
 };
 
-export default function PinnedMessagesPanel({ channelId, channelName, onClose, onJumpTo }) {
+export default function PinnedMessagesPanel({ channelId, channelName, onClose, onJumpTo, isMobile }) {
   const [pinned, setPinned] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,20 +27,48 @@ export default function PinnedMessagesPanel({ channelId, channelName, onClose, o
   }, [channelId]);
 
   return (
-    <div style={{ width:340, borderLeft:`1px solid ${C.border}`, display:"flex",
-      flexDirection:"column", background:C.surface, flexShrink:0, height:"100%" }}>
+    <div
+      className={isMobile ? "animate-slide-right" : ""}
+      style={{
+        width: isMobile ? "100%" : 340,
+        position: isMobile ? "fixed" : "relative",
+        inset: isMobile ? 0 : "auto",
+        zIndex: isMobile ? 350 : "auto",
+        borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+        display: "flex",
+        flexDirection: "column",
+        background: C.surface,
+        flexShrink: 0,
+        height: "100%",
+      }}
+    >
 
       {/* Header */}
-      <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.border}`,
-        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div>
-          <div style={{ color:C.text, fontWeight:700, fontSize:14 }}>📌 Pinned Messages</div>
-          <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>
-            #{channelName} · {pinned.length} pinned
+      <div style={{
+        padding: "14px 16px", borderBottom: `1px solid ${C.border}`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isMobile && (
+            <button
+              onClick={onClose}
+              style={{
+                background: "none", border: "none", color: C.gold, cursor: "pointer",
+                fontSize: 16, fontWeight: 700, padding: "4px 8px 4px 0",
+              }}
+            >
+              ‹ Back
+            </button>
+          )}
+          <div>
+            <div style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>📌 Pinned Messages</div>
+            <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>
+              #{channelName} · {pinned.length} pinned
+            </div>
           </div>
         </div>
         <button onClick={onClose}
-          style={{ background:"none", border:"none", color:C.muted, fontSize:18, cursor:"pointer" }}>✕</button>
+          style={{ background: "none", border: "none", color: C.muted, fontSize: 18, cursor: "pointer", padding: "4px 8px" }}>✕</button>
       </div>
 
       {/* List */}

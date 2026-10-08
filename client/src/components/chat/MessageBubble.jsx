@@ -57,7 +57,7 @@ function PollWidget({ poll, onVote }) {
 
 const QUICK_EMOJIS = ["👍","👏","✅","❤️","🙏","🚨"];
 
-export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onReact, onPin, onDelete }) {
+export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onReact, onPin, onDelete, onOpenThread }) {
   const [showActions, setShowActions]         = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -113,6 +113,16 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
           <span style={{ fontSize:11, color:colors.mutedDim, marginLeft:"auto" }}>
             {format(new Date(msg.createdAt),"h:mm a")}
           </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowActions(s => !s); }}
+            title="Message options"
+            style={{
+              background: "none", border: "none", color: showActions ? colors.gold : colors.ghost,
+              cursor: "pointer", fontSize: 14, padding: "0 4px", lineHeight: 1,
+            }}
+          >
+            •••
+          </button>
         </div>
 
         {/* Content */}
@@ -154,8 +164,16 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
 
         {/* Thread replies */}
         {msg._count?.replies > 0 && (
-          <div style={{ marginTop:6, fontSize:12, color:"#2563EB", cursor:"pointer" }}>
+          <div
+            onClick={() => onOpenThread?.(msg)}
+            style={{
+              marginTop: 6, fontSize: 12, color: "#2563EB", cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
+              padding: "3px 8px", borderRadius: 6, background: "rgba(37,99,235,0.08)",
+            }}
+          >
             💬 {msg._count.replies} {msg._count.replies===1?"reply":"replies"}
+            <span style={{ fontSize: 11, color: colors.muted }}>· View thread →</span>
           </div>
         )}
 
@@ -163,19 +181,20 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
         {showReceipts && <ReadReceiptsBar readReceipts={msg.readReceipts} totalMembers={msg._count?.readReceipts} />}
       </div>
 
-      {/* Hover actions */}
+      {/* Hover & Touch actions */}
       {showActions && (
-        <div style={{ position:"absolute", top:4, right:12, display:"flex", gap:4, alignItems:"center",
+        <div style={{ position:"absolute", top:4, right:8, display:"flex", gap:4, alignItems:"center",
           background:colors.surfaceAlt, border:`1px solid ${colors.border}`,
-          borderRadius:8, padding:"3px 6px", zIndex:10 }}>
+          borderRadius:8, padding:"3px 6px", zIndex:20, boxShadow:"0 4px 16px rgba(0,0,0,0.5)" }}>
           <div style={{ position:"relative" }}>
             <ABtn icon="😊" label="React" onClick={()=>setShowEmojiPicker(s=>!s)} />
             {showEmojiPicker && (
               <div style={{ position:"absolute", bottom:"calc(100% + 4px)", right:0,
                 background:colors.surfaceAlt, border:`1px solid ${colors.border}`,
-                borderRadius:8, padding:"6px 8px", display:"flex", gap:4, zIndex:20 }}>
+                borderRadius:8, padding:"6px 8px", display:"flex", gap:4, zIndex:30,
+                boxShadow:"0 6px 20px rgba(0,0,0,0.6)" }}>
                 {QUICK_EMOJIS.map(e => (
-                  <button key={e} onClick={()=>{ onReact(msg.id,e); setShowEmojiPicker(false); }}
+                  <button key={e} onClick={()=>{ onReact(msg.id,e); setShowEmojiPicker(false); setShowActions(false); }}
                     style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, borderRadius:4, padding:"2px 3px" }}
                     onMouseEnter={el=>el.currentTarget.style.background="rgba(255,255,255,0.1)"}
                     onMouseLeave={el=>el.currentTarget.style.background="none"}>
@@ -185,6 +204,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
               </div>
             )}
           </div>
+          {onOpenThread && <ABtn icon="💬" label="Reply in thread" onClick={()=>{ onOpenThread(msg); setShowActions(false); }} />}
           {isAdmin && <ABtn icon="📌" label={isPinned?"Unpin":"Pin"} onClick={()=>onPin(msg.id)} />}
           {(isOwn||isAdmin) && <ABtn icon="🗑️" label="Delete" onClick={()=>onDelete(msg.id)} danger />}
         </div>

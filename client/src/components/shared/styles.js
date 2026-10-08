@@ -29,13 +29,14 @@ export const colors = {
 export const s = {
   // ── Auth pages ──────────────────────────────────────────────────────────────
   authPage: {
-    minHeight: "100vh",
+    minHeight: "100dvh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     background: colors.bg,
-    padding: 20,
+    padding: "16px 12px",
     fontFamily: "'DM Sans', sans-serif",
+    boxSizing: "border-box",
   },
   authCard: {
     width: "100%",
@@ -43,7 +44,8 @@ export const s = {
     background: colors.surfaceAlt,
     border: `1px solid ${colors.border}`,
     borderRadius: 16,
-    padding: 32,
+    padding: "clamp(20px, 5vw, 32px)",
+    boxSizing: "border-box",
   },
 
   // ── Form elements ────────────────────────────────────────────────────────────
@@ -154,21 +156,24 @@ export const s = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.75)",
+    backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
-    padding: 16,
+    padding: "clamp(8px, 2vw, 16px)",
+    boxSizing: "border-box",
   },
   modalCard: {
     background: colors.surfaceAlt,
     border: `1px solid ${colors.border}`,
     borderRadius: 14,
-    padding: 28,
+    padding: "clamp(16px, 4vw, 28px)",
     width: "100%",
     maxWidth: 560,
-    maxHeight: "90vh",
+    maxHeight: "calc(100dvh - 32px)",
     overflowY: "auto",
+    boxSizing: "border-box",
   },
 };
 

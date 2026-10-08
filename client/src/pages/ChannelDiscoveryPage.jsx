@@ -140,7 +140,7 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
 
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`,
-        padding:"16px 24px", flexShrink:0 }}>
+        padding:"14px clamp(12px, 3vw, 24px)", flexShrink:0 }}>
         <h2 style={{ color:C.text, fontSize:18, fontWeight:700, margin:"0 0 12px" }}>
           🔍 Discover Channels
         </h2>
@@ -152,12 +152,12 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
             style={{ flex:1, minWidth:200, padding:"8px 12px", borderRadius:8,
               border:`1px solid ${C.border}`, background:C.surfaceAlt,
               color:C.text, fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none" }} />
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, maxWidth:"100%" }}>
             {FILTER_TYPES.map(t => (
               <button key={t} onClick={() => setFilterType(t)}
                 style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${filterType===t?C.gold:C.border}`,
                   background:filterType===t?"rgba(212,168,67,0.08)":"transparent",
-                  color:filterType===t?C.gold:C.muted,
+                  color:filterType===t?C.gold:C.muted, whiteSpace:"nowrap",
                   cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif" }}>
                 {t === "ALL" ? `All (${channels.filter(c=>!c.isArchived).length})` : TYPE_META[t]?.icon + " " + t}
               </button>
@@ -167,7 +167,7 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
         {loading && <div style={{ textAlign:"center", padding:40, color:C.muted }}>Loading channels...</div>}
 
         {!loading && filtered.length === 0 && (
@@ -184,7 +184,7 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
               letterSpacing:"0.07em", marginBottom:12 }}>
               ✅ JOINED ({joined.length})
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap:12 }}>
               {joined.map(ch => <ChannelCard key={ch.id} ch={ch} />)}
             </div>
           </div>
@@ -197,7 +197,7 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
               letterSpacing:"0.07em", marginBottom:12 }}>
               AVAILABLE TO JOIN ({notJoined.length})
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap:12 }}>
               {notJoined.map(ch => <ChannelCard key={ch.id} ch={ch} />)}
             </div>
           </div>

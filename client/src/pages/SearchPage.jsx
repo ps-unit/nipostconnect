@@ -61,9 +61,9 @@ export default function SearchPage({ onSelectChannel }) {
   const total = results.messages.length + results.channels.length + results.staff.length;
 
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
+    <div style={{ flex:1, display:"flex", flexDirection:"column", background:C.bg, fontFamily:"'DM Sans',sans-serif", height:"100%" }}>
       {/* Search header */}
-      <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"14px 20px", flexShrink:0 }}>
+      <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"14px clamp(12px, 3vw, 20px)", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:12, background:C.surfaceAlt,
           borderRadius:10, border:`1px solid ${C.border}`, padding:"0 16px", maxWidth:640 }}>
           <span style={{ fontSize:18, color:C.muted }}>🔍</span>
@@ -78,7 +78,7 @@ export default function SearchPage({ onSelectChannel }) {
         </div>
 
         {/* Tabs */}
-        <div style={{ display:"flex", gap:0, marginTop:12 }}>
+        <div style={{ display:"flex", gap:0, marginTop:12, overflowX:"auto" }}>
           {[
             { id:"messages", label:"Messages",  icon:"💬" },
             { id:"channels", label:"Channels",  icon:"📢" },
@@ -87,7 +87,7 @@ export default function SearchPage({ onSelectChannel }) {
             <button key={t.id} onClick={() => handleTabChange(t.id)}
               style={{ padding:"6px 16px", border:"none", background:"none", cursor:"pointer",
                 fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif",
-                color:tab===t.id?C.gold:C.muted,
+                color:tab===t.id?C.gold:C.muted, whiteSpace:"nowrap",
                 borderBottom:tab===t.id?`2px solid ${C.gold}`:"2px solid transparent" }}>
               {t.icon} {t.label}
               {searched && results[t.id]?.length > 0 && (
@@ -102,7 +102,7 @@ export default function SearchPage({ onSelectChannel }) {
       </div>
 
       {/* Results */}
-      <div style={{ flex:1, overflowY:"auto", padding:"12px 20px" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"12px clamp(12px, 3vw, 20px)" }}>
 
         {/* Empty state */}
         {!query && (

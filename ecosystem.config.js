@@ -11,9 +11,9 @@ module.exports = {
       script: "./server/server.js",
       cwd:    __dirname,
 
-      // Cluster mode — one worker per CPU core
-      instances: "max",
-      exec_mode: "cluster",
+      // Single instance fork mode
+      instances: 1,
+      exec_mode: "fork",
 
       // Environment
       env: {

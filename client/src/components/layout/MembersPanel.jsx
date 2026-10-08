@@ -16,7 +16,7 @@ function Avatar({ name = "", size = 28 }) {
   );
 }
 
-export default function MembersPanel({ channelId }) {
+export default function MembersPanel({ channelId, onClose, isMobile }) {
   const { isOnline } = useSocket();
   const [members, setMembers] = useState([]);
 
@@ -36,9 +36,43 @@ export default function MembersPanel({ channelId }) {
   });
 
   return (
-    <div style={{ width: 220, background: colors.surface, borderLeft: `1px solid ${colors.borderDim}`, padding: "14px 10px", overflowY: "auto", flexShrink: 0 }}>
-      <div style={{ color: colors.muted, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>
-        MEMBERS — {members.length}
+    <div
+      className={isMobile ? "animate-slide-right" : ""}
+      style={{
+        width: isMobile ? "100%" : 220,
+        position: isMobile ? "fixed" : "relative",
+        inset: isMobile ? 0 : "auto",
+        zIndex: isMobile ? 350 : "auto",
+        background: colors.surface,
+        borderLeft: isMobile ? "none" : `1px solid ${colors.borderDim}`,
+        padding: isMobile ? "16px 14px" : "14px 10px",
+        overflowY: "auto",
+        flexShrink: 0,
+        height: "100%",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {isMobile && onClose && (
+            <button
+              onClick={onClose}
+              style={{ background: "none", border: "none", color: colors.gold, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "2px 6px 2px 0" }}
+            >
+              ‹ Back
+            </button>
+          )}
+          <div style={{ color: colors.muted, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em" }}>
+            MEMBERS — {members.length}
+          </div>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", color: colors.muted, cursor: "pointer", fontSize: 16, padding: "2px 6px" }}
+          >
+            ✕
+          </button>
+        )}
       </div>
       {Object.keys(grouped).sort((a, b) => roleOrder[a] - roleOrder[b]).map(role => (
         <div key={role} style={{ marginBottom: 12 }}>
