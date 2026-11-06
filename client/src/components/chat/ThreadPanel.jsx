@@ -1,10 +1,10 @@
-
 // client/src/components/chat/ThreadPanel.jsx — Phase 7
 // Slide-in thread view for replying to a specific message
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { messagesAPI } from "../../services/api";
+import { resolveUploadUrl } from "../shared/styles";
 import { format } from "date-fns";
 
 const C = {
@@ -12,7 +12,19 @@ const C = {
   gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 
-function Avatar({ name="", size=32 }) {
+function Avatar({ name="", avatarUrl=null, size=32 }) {
+  const [imgErr, setImgErr] = useState(false);
+  const resolved = resolveUploadUrl(avatarUrl);
+  if (resolved && !imgErr) {
+    return (
+      <img
+        src={resolved}
+        alt={name}
+        onError={() => setImgErr(true)}
+        style={{ width:size, height:size, borderRadius:"50%", objectFit:"cover", flexShrink:0, display:"block" }}
+      />
+    );
+  }
   const initials = name.split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase();
   const COLORS = ["#C9952A","#1A6B4A","#8B2252","#1A4A8B","#2A5C8B","#8B4513","#2C5F2E"];
   let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h);
@@ -28,9 +40,10 @@ function Avatar({ name="", size=32 }) {
 
 function ReplyBubble({ msg }) {
   const name = msg.isAnonymous ? "Anonymous" : (msg.author?.name || "Unknown");
+  const avatarUrl = msg.isAnonymous ? null : msg.author?.avatarUrl;
   return (
     <div style={{ display:"flex", gap:10, padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
-      <Avatar name={name} size={32} />
+      <Avatar name={name} avatarUrl={avatarUrl} size={32} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
           <span style={{ color:C.text, fontWeight:600, fontSize:13 }}>{name}</span>
@@ -112,6 +125,7 @@ export default function ThreadPanel({ parentMessage, channelId, onClose, isMobil
         background: C.surface,
         flexShrink: 0,
         height: "100%",
+        paddingBottom: isMobile ? "calc(56px + var(--safe-bottom, 0px))" : 0,
       }}
     >
 
@@ -151,7 +165,7 @@ export default function ThreadPanel({ parentMessage, channelId, onClose, isMobil
           ORIGINAL MESSAGE
         </div>
         <div style={{ display:"flex", gap:10 }}>
-          <Avatar name={parentMessage.author?.name || "?"} size={28} />
+          <Avatar name={parentMessage.author?.name || "?"} avatarUrl={parentMessage.author?.avatarUrl} size={28} />
           <div>
             <div style={{ color:C.text, fontWeight:600, fontSize:13, marginBottom:3 }}>
               {parentMessage.isAnonymous ? "Anonymous" : parentMessage.author?.name}
@@ -177,7 +191,7 @@ export default function ThreadPanel({ parentMessage, channelId, onClose, isMobil
 
       {/* Compose reply */}
       <div style={{
-        padding: isMobile ? "10px 12px calc(10px + var(--safe-bottom, 0px))" : "10px 12px",
+        padding: "10px 12px",
         borderTop: `1px solid ${C.border}`,
       }}>
         <div style={{ display:"flex", gap:8, alignItems:"flex-end",

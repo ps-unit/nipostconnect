@@ -125,7 +125,7 @@ export default function AIMemoModal({ onClose, onUseDraft, defaultChannelId }) {
               <input value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})} style={inp} />
 
               <label style={lbl}>Tone</label>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap:8, marginBottom:14 }}>
                 {TONE_OPTIONS.map(t => (
                   <label key={t.value}
                     style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 12px",

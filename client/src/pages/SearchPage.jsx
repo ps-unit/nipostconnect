@@ -2,6 +2,7 @@
 // client/src/pages/SearchPage.jsx — Phase 3
 import { useState, useCallback, useRef } from "react";
 import { searchAPI } from "../services/api";
+import { resolveUploadUrl } from "../components/shared/styles";
 import { format } from "date-fns";
 
 const C = {
@@ -193,17 +194,22 @@ export default function SearchPage({ onSelectChannel }) {
         {/* Staff */}
         {tab === "staff" && !loading && results.staff.map(u => {
           const badge = ROLE_BADGE[u.role];
+          const avatarSrc = resolveUploadUrl(u.avatarUrl);
           return (
             <div key={u.id} style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`,
               borderRadius:10, padding:"12px 16px", marginBottom:10,
-              display:"flex", alignItems:"center", gap:14 }}
+              display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}
               onMouseEnter={e=>e.currentTarget.style.background="#0F2847"}
               onMouseLeave={e=>e.currentTarget.style.background=C.surfaceAlt}>
-              <div style={{ width:40, height:40, borderRadius:"50%", background:"#1A3356",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:14, fontWeight:700, color:C.gold, flexShrink:0 }}>
-                {u.name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase()}
-              </div>
+              {avatarSrc ? (
+                <img src={avatarSrc} alt={u.name} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+              ) : (
+                <div style={{ width:40, height:40, borderRadius:"50%", background:"#1A3356",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:14, fontWeight:700, color:C.gold, flexShrink:0 }}>
+                  {u.name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase()}
+                </div>
+              )}
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
                   <span style={{ color:C.text, fontWeight:600, fontSize:14 }}>{highlight(u.name, query)}</span>

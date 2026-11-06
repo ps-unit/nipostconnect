@@ -9,13 +9,14 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 const MESSAGE_INCLUDE = {
-  author: { select: { id:true, name:true, staffId:true, role:true, avatar:true, department:true, state:true } },
+  author: { select: { id:true, name:true, staffId:true, role:true, avatar:true, avatarUrl:true, department:true, state:true } },
+  attachments: true,
   reactions: {
     select: { id:true, emoji:true, userId:true, user:{ select:{ name:true } } },
   },
   replies: {
     take: 3,
-    include: { author: { select: { id:true, name:true, avatar:true } } },
+    include: { author: { select: { id:true, name:true, avatar:true, avatarUrl:true } } },
     orderBy: { createdAt: "asc" },
   },
   poll: {
@@ -35,14 +36,15 @@ router.get("/:channelId", authenticate,
   async (req, res, next) => {
     try {
       const { channelId } = req.params;
-      const limit  = Math.min(parseInt(req.query.limit)  || 50, 100);
-      const before = req.query.before; // cursor pagination (message id)
-      const type   = req.query.type;  // filter by message type
+      const limit    = Math.min(parseInt(req.query.limit)  || 50, 100);
+      const before   = req.query.before; // cursor pagination (message id)
+      const type     = req.query.type;   // filter by message type
+      const parentId = req.query.parentId;
 
       const where = {
         channelId,
         deletedAt: null,
-        parentId:  null, // top-level only
+        parentId:  parentId || null,
         ...(before && { id: { lt: before } }),
         ...(type   && { type }),
       };

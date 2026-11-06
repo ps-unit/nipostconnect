@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usersAPI } from "../services/api";
 import api from "../services/api";
+import { resolveUploadUrl } from "../components/shared/styles";
 import { formatDistanceToNow } from "date-fns";
 
 const C = {
@@ -26,17 +27,20 @@ function getAvatarBg(name) {
 }
 
 function StaffCard({ user, onMessage, onlineUsers }) {
+  const [imgErr, setImgErr] = useState(false);
   const badge    = ROLE_BADGE[user.role] || ROLE_BADGE.STAFF;
   const isOnline = onlineUsers.has(user.id);
+  const avatarSrc = resolveUploadUrl(user.avatarUrl);
   return (
     <div style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`,
-      borderRadius:12, padding:16, display:"flex", gap:14, alignItems:"flex-start" }}>
+      borderRadius:12, padding:16, display:"flex", gap:14, alignItems:"flex-start", flexWrap:"wrap" }}>
 
       {/* Avatar */}
       <div style={{ position:"relative", flexShrink:0 }}>
-        {user.avatarUrl ? (
-          <img src={user.avatarUrl} alt={user.name}
-            style={{ width:52, height:52, borderRadius:"50%", objectFit:"cover" }} />
+        {avatarSrc && !imgErr ? (
+          <img src={avatarSrc} alt={user.name}
+            onError={() => setImgErr(true)}
+            style={{ width:52, height:52, borderRadius:"50%", objectFit:"cover", display:"block" }} />
         ) : (
           <div style={{ width:52, height:52, borderRadius:"50%",
             background:getAvatarBg(user.name),

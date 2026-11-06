@@ -17,14 +17,14 @@ router.get("/conversations", authenticate, async (req, res, next) => {
       where: { senderId: userId, deletedAt: null },
       distinct: ["receiverId"],
       orderBy: { createdAt: "desc" },
-      include: { receiver: { select: { id:true, name:true, avatar:true, role:true, lastSeenAt:true, state:{ select:{name:true} }, department:{ select:{name:true} } } } },
+      include: { receiver: { select: { id:true, name:true, avatar:true, avatarUrl:true, role:true, lastSeenAt:true, state:{ select:{name:true} }, department:{ select:{name:true} } } } },
     });
 
     const received = await prisma.directMessage.findMany({
       where: { receiverId: userId, deletedAt: null },
       distinct: ["senderId"],
       orderBy: { createdAt: "desc" },
-      include: { sender: { select: { id:true, name:true, avatar:true, role:true, lastSeenAt:true, state:{ select:{name:true} }, department:{ select:{name:true} } } } },
+      include: { sender: { select: { id:true, name:true, avatar:true, avatarUrl:true, role:true, lastSeenAt:true, state:{ select:{name:true} }, department:{ select:{name:true} } } } },
     });
 
     // Merge and deduplicate
@@ -78,8 +78,8 @@ router.get("/:userId", authenticate, async (req, res, next) => {
         ...(before && { createdAt: { lt: new Date(before) } }),
       },
       include: {
-        sender: { select: { id:true, name:true, avatar:true, role:true } },
-        receiver: { select: { id:true, name:true, avatar:true, role:true } },
+        sender: { select: { id:true, name:true, avatar:true, avatarUrl:true, role:true } },
+        receiver: { select: { id:true, name:true, avatar:true, avatarUrl:true, role:true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -117,7 +117,7 @@ router.post("/:userId", authenticate, [
     const dm = await prisma.directMessage.create({
       data: { content: req.body.content, senderId, receiverId },
       include: {
-        sender: { select: { id:true, name:true, avatar:true, role:true } },
+        sender: { select: { id:true, name:true, avatar:true, avatarUrl:true, role:true } },
       },
     });
 

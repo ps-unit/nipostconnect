@@ -157,7 +157,7 @@ router.get("/:channelId/members", authenticate, requireChannelAccess(), async (r
       include: {
         user: {
           select: { id:true, name:true, staffId:true, email:true, role:true,
-                    status:true, lastSeenAt:true, avatar:true, state:true, department:true },
+                    status:true, lastSeenAt:true, avatar:true, avatarUrl:true, state:true, department:true },
         },
       },
       orderBy: { joinedAt: "asc" },

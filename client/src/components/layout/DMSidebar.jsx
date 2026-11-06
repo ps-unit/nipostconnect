@@ -2,10 +2,21 @@
 import { useState, useEffect } from "react";
 import { dmsAPI } from "../../services/api";
 import { useSocket } from "../../contexts/SocketContext";
-import { colors } from "../shared/styles";
-import { formatDistanceToNow } from "date-fns";
+import { colors, resolveUploadUrl } from "../shared/styles";
 
-function Avatar({ name = "", size = 32 }) {
+function Avatar({ name = "", avatarUrl = null, size = 32 }) {
+  const [imgErr, setImgErr] = useState(false);
+  const resolved = resolveUploadUrl(avatarUrl);
+  if (resolved && !imgErr) {
+    return (
+      <img
+        src={resolved}
+        alt={name}
+        onError={() => setImgErr(true)}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, display: "block" }}
+      />
+    );
+  }
   const initials = name.split(" ").slice(0, 2).map(w => w[0] || "").join("").toUpperCase();
   const COLORS = ["#C9952A","#1A6B4A","#8B2252","#1A4A8B","#5C3A1E","#2A5C8B","#8B4513","#2C5F2E"];
   let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
@@ -59,7 +70,7 @@ export default function DMSidebar({ activeDMUserId, onSelectDM, isMobile }) {
               onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
               <div style={{ position: "relative" }}>
-                <Avatar name={c.partner.name} size={36} />
+                <Avatar name={c.partner.name} avatarUrl={c.partner.avatarUrl} size={36} />
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: online ? "#22C55E" : colors.ghost, border: `2px solid ${colors.surface}`, position: "absolute", bottom: -1, right: -1 }} />
               </div>
               <div style={{ flex: 1, overflow: "hidden" }}>

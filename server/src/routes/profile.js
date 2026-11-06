@@ -13,23 +13,23 @@ const router  = express.Router();
 const prisma  = new PrismaClient();
 
 // Avatar upload
-const AVATAR_DIR = path.join(__dirname, "../../../uploads/avatars");
+const AVATAR_DIR = path.join(__dirname, "../../uploads/avatars");
 fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, AVATAR_DIR),
   filename:    (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
     cb(null, `avatar-${req.user.id}-${uuidv4().slice(0,8)}${ext}`);
   },
 });
 const avatarUpload = multer({
   storage: avatarStorage,
-  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB max avatar
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max avatar
   fileFilter: (req, file, cb) => {
-    if (["image/jpeg","image/png","image/webp"].includes(file.mimetype))
+    if (["image/jpeg","image/jpg","image/png","image/webp","image/gif"].includes(file.mimetype))
       cb(null, true);
-    else cb(new Error("Only JPG, PNG or WEBP images allowed"), false);
+    else cb(new Error("Only JPG, PNG, GIF or WEBP images allowed"), false);
   },
 });
 
@@ -104,12 +104,11 @@ router.post("/avatar", authenticate,
     try {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-      const base     = process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
-      const avatarUrl = `${base}/uploads/avatars/${req.file.filename}`;
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
       // Delete old avatar
       const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-      if (user.avatarUrl) {
+      if (user?.avatarUrl) {
         const old = path.join(AVATAR_DIR, path.basename(user.avatarUrl));
         fs.unlink(old, () => {});
       }
@@ -165,6 +164,15 @@ router.patch("/mute-channel", authenticate, [
     });
     res.json({ message: muted ? "Channel muted" : "Channel unmuted", mutedChannels: newMuted });
   } catch (err) { next(err); }
+});
+
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Avatar image too large. Max 5 MB." });
+    return res.status(400).json({ error: err.message });
+  }
+  if (err.message?.includes("images allowed")) return res.status(400).json({ error: err.message });
+  next(err);
 });
 
 module.exports = router;

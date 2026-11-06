@@ -1,8 +1,9 @@
-
-// client/src/components/modals/OrgSettingsModal.jsx — Phase 5
+// client/src/components/modals/OrgSettingsModal.jsx — Phase 5 (Responsive + Fixed Logo Upload)
 import { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
+import { useResponsive } from "../../hooks/useResponsive";
+import { resolveUploadUrl } from "../shared/styles";
 
 const C = {
   surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"#D4A843",
@@ -32,6 +33,7 @@ const ACCENT_PRESETS = [
 
 export default function OrgSettingsModal({ onClose }) {
   const { isSuperAdmin } = useAuth();
+  const { isMobile } = useResponsive();
   const logoRef = useRef();
   const [tab, setTab]         = useState("branding");
   const [settings, setSettings] = useState(null);
@@ -48,7 +50,7 @@ export default function OrgSettingsModal({ onClose }) {
     api.get("/organization").then(r => {
       setSettings(r.data.settings);
       setForm(r.data.settings);
-      setLogoPreview(r.data.settings.logoUrl || null);
+      setLogoPreview(resolveUploadUrl(r.data.settings.logoUrl) || null);
     }).catch(()=>{});
   }, []);
 
@@ -57,6 +59,13 @@ export default function OrgSettingsModal({ onClose }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append("logo", logoFile);
+        const lr = await api.post("/organization/logo", fd);
+        setLogoPreview(resolveUploadUrl(lr.data.logoUrl));
+        setLogoFile(null);
+      }
       const r = await api.patch("/organization", {
         name: form.name, slogan: form.slogan,
         accentColor: form.accentColor,
@@ -75,7 +84,7 @@ export default function OrgSettingsModal({ onClose }) {
   };
 
   const handleLogoChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) { showMsg("error","Logo must be under 2 MB"); return; }
     setLogoFile(file);
@@ -87,10 +96,11 @@ export default function OrgSettingsModal({ onClose }) {
     setUploading(true);
     try {
       const fd = new FormData(); fd.append("logo", logoFile);
-      const r = await api.post("/organization/logo", fd, { headers:{"Content-Type":"multipart/form-data"} });
-      setLogoPreview(r.data.logoUrl);
+      const r = await api.post("/organization/logo", fd);
+      const resolved = resolveUploadUrl(r.data.logoUrl);
+      setLogoPreview(resolved);
       setLogoFile(null);
-      setSettings(s => ({ ...s, logoUrl: r.data.logoUrl }));
+      setSettings(s => ({ ...s, logoUrl: resolved }));
       showMsg("success", "Logo updated");
     } catch(e) { showMsg("error", e.response?.data?.error || "Upload failed"); }
     finally { setUploading(false); }
@@ -117,13 +127,13 @@ export default function OrgSettingsModal({ onClose }) {
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", display:"flex",
-      alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 }}>
+      alignItems:"center", justifyContent:"center", zIndex:1000, padding:"clamp(8px, 2vw, 16px)" }}>
       <div style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`, borderRadius:14,
-        width:"min(760px,96vw)", maxHeight:"92vh", overflow:"hidden",
+        width:"min(760px,96vw)", maxHeight:"92dvh", overflow:"hidden",
         display:"flex", flexDirection:"column" }}>
 
         {/* Header */}
-        <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}`,
+        <div style={{ padding:"14px clamp(14px, 3vw, 22px)", borderBottom:`1px solid ${C.border}`,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
             <h3 style={{ color:C.gold, margin:0, fontSize:17 }}>🏢 Organisation Settings</h3>
@@ -132,41 +142,59 @@ export default function OrgSettingsModal({ onClose }) {
             </p>
           </div>
           <button onClick={onClose}
-            style={{ background:"none", border:"none", color:C.muted, fontSize:20, cursor:"pointer" }}>✕</button>
+            style={{ background:"none", border:"none", color:C.muted, fontSize:20, cursor:"pointer", padding:"4px 8px" }}>✕</button>
         </div>
 
         {/* Status */}
         {msg.text && (
-          <div style={{ margin:"0 22px 0", padding:"9px 14px", fontSize:13,
+          <div style={{ margin:"12px clamp(14px, 3vw, 22px) 0", padding:"9px 14px", fontSize:13,
             background:msg.type==="success"?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)",
             border:`1px solid ${msg.type==="success"?"rgba(34,197,94,0.25)":"rgba(239,68,68,0.25)"}`,
-            borderRadius:8, color:msg.type==="success"?"#86EFAC":"#F87171",
-            marginTop:12 }}>
+            borderRadius:8, color:msg.type==="success"?"#86EFAC":"#F87171" }}>
             {msg.type==="success" ? "✅" : "⚠️"} {msg.text}
           </div>
         )}
 
-        <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
-
-          {/* Sidebar tabs */}
-          <div style={{ width:180, borderRight:`1px solid ${C.border}`, padding:"12px 8px",
-            flexShrink:0 }}>
+        {/* Mobile horizontal tabs */}
+        {isMobile && (
+          <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, overflowX:"auto", flexShrink:0 }}>
             {TABS.map(t => (
               <button key={t.id} onClick={()=>setTab(t.id)}
-                style={{ width:"100%", display:"flex", alignItems:"center", gap:10,
-                  padding:"9px 12px", borderRadius:8, border:"none",
-                  background:tab===t.id?"rgba(212,168,67,0.1)":"transparent",
-                  cursor:"pointer", textAlign:"left", marginBottom:4,
-                  fontFamily:"'DM Sans',sans-serif" }}>
-                <span style={{ fontSize:16 }}>{t.icon}</span>
-                <span style={{ color:tab===t.id?C.gold:C.textMid, fontSize:13,
-                  fontWeight:tab===t.id?600:400 }}>{t.label}</span>
+                style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                  padding:"10px 12px", border:"none", background:"none", cursor:"pointer",
+                  borderBottom:tab===t.id?`2px solid ${C.gold}`:"2px solid transparent",
+                  color:tab===t.id?C.gold:C.muted, fontSize:13, fontWeight:tab===t.id?600:400,
+                  whiteSpace:"nowrap", fontFamily:"'DM Sans',sans-serif" }}>
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
               </button>
             ))}
           </div>
+        )}
+
+        <div style={{ display:"flex", flex:1, overflow:"hidden", flexDirection:isMobile?"column":"row" }}>
+
+          {/* Desktop Sidebar tabs */}
+          {!isMobile && (
+            <div style={{ width:180, borderRight:`1px solid ${C.border}`, padding:"12px 8px",
+              flexShrink:0 }}>
+              {TABS.map(t => (
+                <button key={t.id} onClick={()=>setTab(t.id)}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10,
+                    padding:"9px 12px", borderRadius:8, border:"none",
+                    background:tab===t.id?"rgba(212,168,67,0.1)":"transparent",
+                    cursor:"pointer", textAlign:"left", marginBottom:4,
+                    fontFamily:"'DM Sans',sans-serif" }}>
+                  <span style={{ fontSize:16 }}>{t.icon}</span>
+                  <span style={{ color:tab===t.id?C.gold:C.textMid, fontSize:13,
+                    fontWeight:tab===t.id?600:400 }}>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Tab content */}
-          <div style={{ flex:1, overflowY:"auto", padding:22 }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"clamp(14px, 3vw, 22px)" }}>
 
             {/* ── Branding ── */}
             {tab === "branding" && (
@@ -174,7 +202,7 @@ export default function OrgSettingsModal({ onClose }) {
                 {/* Logo section */}
                 <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>ORGANISATION LOGO</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:20 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap" }}>
                     <div onClick={()=>logoRef.current?.click()}
                       style={{ width:88, height:88, borderRadius:12, background:"#0D2244",
                         border:`2px dashed ${logoPreview?C.gold:C.border}`,
@@ -184,12 +212,12 @@ export default function OrgSettingsModal({ onClose }) {
                         ? <img src={logoPreview} alt="Logo" style={{ width:"100%", height:"100%", objectFit:"contain" }} />
                         : <span style={{ fontSize:32, color:C.ghost }}>📮</span>}
                     </div>
-                    <div>
+                    <div style={{ flex:1, minWidth:180 }}>
                       <div style={{ color:C.textMid, fontSize:13, fontWeight:600, marginBottom:6 }}>
                         {form.name}
                       </div>
                       <div style={{ color:C.muted, fontSize:12, marginBottom:12 }}>PNG, JPG, SVG or WEBP · max 2 MB<br/>Recommended: 256×256 px or larger</div>
-                      <div style={{ display:"flex", gap:8 }}>
+                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                         <button onClick={()=>logoRef.current?.click()}
                           style={{ padding:"6px 14px", borderRadius:7, border:`1px solid ${C.border}`,
                             background:"transparent", color:C.textMid, cursor:"pointer",
@@ -246,7 +274,7 @@ export default function OrgSettingsModal({ onClose }) {
                           outlineOffset:2, transition:"outline 0.15s" }} />
                     ))}
                   </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
                     <label style={{ ...lbl, margin:0 }}>Custom hex:</label>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <div style={{ width:28, height:28, borderRadius:6, background:form.accentColor||C.gold,
@@ -306,7 +334,7 @@ export default function OrgSettingsModal({ onClose }) {
                     <div onClick={()=>set("maintenanceMode",!form.maintenanceMode)}
                       style={{ width:44, height:24, borderRadius:12, position:"relative",
                         background:form.maintenanceMode?"#EF4444":C.border,
-                        cursor:"pointer", transition:"background 0.2s" }}>
+                        cursor:"pointer", transition:"background 0.2s", flexShrink:0 }}>
                       <div style={{ position:"absolute", top:3,
                         left:form.maintenanceMode?23:3, width:18, height:18,
                         borderRadius:"50%", background:"#fff", transition:"left 0.2s" }} />
@@ -322,7 +350,7 @@ export default function OrgSettingsModal({ onClose }) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding:"14px 22px", borderTop:`1px solid ${C.border}`,
+        <div style={{ padding:"14px clamp(14px, 3vw, 22px)", borderTop:`1px solid ${C.border}`,
           display:"flex", justifyContent:"flex-end", gap:10 }}>
           <button onClick={onClose}
             style={{ padding:"9px 18px", borderRadius:8, border:`1px solid ${C.border}`,

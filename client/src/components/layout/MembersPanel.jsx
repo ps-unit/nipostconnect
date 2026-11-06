@@ -2,9 +2,21 @@
 import { useState, useEffect } from "react";
 import { channelsAPI } from "../../services/api";
 import { useSocket } from "../../contexts/SocketContext";
-import { colors, ROLE_BADGE } from "../shared/styles";
+import { colors, ROLE_BADGE, resolveUploadUrl } from "../shared/styles";
 
-function Avatar({ name = "", size = 28 }) {
+function Avatar({ name = "", avatarUrl = null, size = 28 }) {
+  const [imgErr, setImgErr] = useState(false);
+  const resolved = resolveUploadUrl(avatarUrl);
+  if (resolved && !imgErr) {
+    return (
+      <img
+        src={resolved}
+        alt={name}
+        onError={() => setImgErr(true)}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, display: "block" }}
+      />
+    );
+  }
   const initials = name.split(" ").slice(0, 2).map(w => w[0] || "").join("").toUpperCase();
   const COLORS = ["#C9952A","#1A6B4A","#8B2252","#1A4A8B","#5C3A1E","#2A5C8B","#8B4513","#2C5F2E"];
   let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
@@ -45,7 +57,7 @@ export default function MembersPanel({ channelId, onClose, isMobile }) {
         zIndex: isMobile ? 350 : "auto",
         background: colors.surface,
         borderLeft: isMobile ? "none" : `1px solid ${colors.borderDim}`,
-        padding: isMobile ? "16px 14px" : "14px 10px",
+        padding: isMobile ? "16px 14px calc(70px + var(--safe-bottom, 0px))" : "14px 10px",
         overflowY: "auto",
         flexShrink: 0,
         height: "100%",
@@ -81,14 +93,13 @@ export default function MembersPanel({ channelId, onClose, isMobile }) {
           </div>
           {grouped[role].map(m => {
             const online = isOnline(m.user.id);
-            const badge  = ROLE_BADGE[m.user.role];
             return (
               <div key={m.id}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 6, cursor: "pointer", marginBottom: 2 }}
                 onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ position: "relative" }}>
-                  <Avatar name={m.user.name} size={28} />
+                  <Avatar name={m.user.name} avatarUrl={m.user.avatarUrl} size={28} />
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: online ? "#22C55E" : "#4B6280", border: `2px solid ${colors.surface}`, position: "absolute", bottom: -1, right: -1 }} />
                 </div>
                 <div style={{ overflow: "hidden", minWidth: 0 }}>

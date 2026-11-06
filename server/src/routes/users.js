@@ -10,33 +10,42 @@ const prisma = new PrismaClient();
 // ── GET /api/users/directory — staff directory ────────────────────────────────
 router.get("/directory", authenticate, async (req, res, next) => {
   try {
-    const { search, stateId, departmentId, role } = req.query;
+    const { search, stateId, departmentId, role, limit = "100", offset = "0" } = req.query;
+    const take = Math.min(parseInt(limit) || 100, 100);
+    const skip = Math.max(parseInt(offset) || 0, 0);
 
-    const users = await prisma.user.findMany({
-      where: {
-        status: "ACTIVE",
-        ...(search && {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { staffId: { contains: search, mode: "insensitive" } },
-            { postOffice: { contains: search, mode: "insensitive" } },
-          ],
-        }),
-        ...(stateId && { stateId }),
-        ...(departmentId && { departmentId }),
-        ...(role && { role }),
-      },
-      select: {
-        id: true, name: true, staffId: true, email: true, role: true,
-        postOffice: true, lastSeenAt: true, avatar: true,
-        state: { select: { name: true, slug: true } },
-        department: { select: { name: true, slug: true } },
-      },
-      orderBy: { name: "asc" },
-      take: 100,
-    });
+    const where = {
+      status: "ACTIVE",
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { staffId: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { postOffice: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+      ...(stateId && { stateId }),
+      ...(departmentId && { departmentId }),
+      ...(role && { role }),
+    };
 
-    res.json({ users });
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true, name: true, staffId: true, email: true, role: true,
+          postOffice: true, lastSeenAt: true, avatar: true, avatarUrl: true,
+          state: { select: { name: true, slug: true } },
+          department: { select: { name: true, slug: true } },
+        },
+        orderBy: { name: "asc" },
+        take,
+        skip,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    res.json({ users, total, hasMore: skip + users.length < total });
   } catch (err) { next(err); }
 });
 
@@ -46,8 +55,8 @@ router.get("/:userId", authenticate, async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: req.params.userId },
       select: {
-        id: true, name: true, staffId: true, email: true, role: true,
-        status: true, postOffice: true, lastSeenAt: true, avatar: true,
+        id: true, name: true, staffId: true, email: true, phone: true, role: true,
+        status: true, postOffice: true, lastSeenAt: true, avatar: true, avatarUrl: true,
         createdAt: true,
         state: { select: { name: true, slug: true } },
         department: { select: { name: true, slug: true } },
@@ -62,9 +71,9 @@ router.get("/:userId", authenticate, async (req, res, next) => {
 // ── PATCH /api/users/me/profile — update own profile ─────────────────────────
 router.patch("/me/profile", authenticate, [
   body("name").optional().trim().isLength({ min: 2, max: 100 }),
-  body("phone").optional().isMobilePhone(),
-  body("postOffice").optional().trim().isLength({ max: 200 }),
-  body("avatar").optional().trim().isLength({ max: 10 }),  // initials/emoji
+  body("phone").optional({ values: "falsy" }).trim().isLength({ max: 30 }),
+  body("postOffice").optional({ values: "falsy" }).trim().isLength({ max: 200 }),
+  body("avatar").optional({ values: "falsy" }).trim().isLength({ max: 10 }),  // initials/emoji
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -76,9 +85,9 @@ router.patch("/me/profile", authenticate, [
       where: { id: req.user.id },
       data: {
         ...(name && { name }),
-        ...(phone !== undefined && { phone }),
-        ...(postOffice !== undefined && { postOffice }),
-        ...(avatar !== undefined && { avatar }),
+        ...(phone !== undefined && { phone: phone || null }),
+        ...(postOffice !== undefined && { postOffice: postOffice || null }),
+        ...(avatar !== undefined && { avatar: avatar || null }),
       },
       include: { state: true, department: true },
     });

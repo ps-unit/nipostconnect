@@ -1,19 +1,61 @@
-// client/src/components/layout/NavRail.jsx — Responsive version
+// client/src/components/layout/NavRail.jsx — Responsive version (+ avatarUrl + Search)
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import NotificationBell from "../shared/NotificationBell";
-import { colors } from "../shared/styles";
+import { colors, resolveUploadUrl } from "../shared/styles";
 
 const NAV = [
   { id: "channels",  icon: "🏠", label: "Channels"          },
-  { id: "dms",       icon: "💬", label: "Direct Messages"   },
-  { id: "discover",  icon: "🔍", label: "Discover"          },
+  { id: "dms",       icon: "💬", label: "DMs"               },
+  { id: "discover",  icon: "🧭", label: "Discover"          },
   { id: "directory", icon: "👥", label: "Directory"         },
+  { id: "search",    icon: "🔍", label: "Search"            },
 ];
 
 function getInitials(name = "") {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
+
+function UserAvatarCircle({ user, size = 36, highlight = false }) {
+  const [imgErr, setImgErr] = useState(false);
+  const avatarSrc = resolveUploadUrl(user?.avatarUrl);
+  if (avatarSrc && !imgErr) {
+    return (
+      <img
+        src={avatarSrc}
+        alt={user?.name || "User"}
+        onError={() => setImgErr(true)}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: `1.5px solid ${highlight ? colors.gold : colors.border}`,
+          display: "block",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: "#0D2244",
+      border: `1px solid ${highlight ? colors.gold : colors.border}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: Math.max(10, Math.round(size * 0.36)),
+      fontWeight: 700,
+      color: colors.gold,
+      flexShrink: 0,
+    }}>
+      {getInitials(user?.name)}
+    </div>
+  );
 }
 
 export default function NavRail({
@@ -82,14 +124,14 @@ export default function NavRail({
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  padding: "6px 12px",
+                  padding: "6px 8px",
                   borderRadius: 8,
                   color: active ? colors.gold : colors.muted,
                   transition: "all 0.15s",
-                  minWidth: 54,
+                  minWidth: 48,
                 }}
               >
-                <span style={{ fontSize: 20, lineHeight: 1 }}>{n.icon}</span>
+                <span style={{ fontSize: 19, lineHeight: 1 }}>{n.icon}</span>
                 <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{n.label}</span>
               </button>
             );
@@ -107,27 +149,13 @@ export default function NavRail({
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              padding: "6px 12px",
+              padding: "6px 8px",
               borderRadius: 8,
               color: showMenu ? colors.gold : colors.muted,
-              minWidth: 54,
+              minWidth: 48,
             }}
           >
-            <div style={{
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background: "#0D2244",
-              border: `1px solid ${showMenu ? colors.gold : colors.border}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 10,
-              fontWeight: 700,
-              color: colors.gold,
-            }}>
-              {getInitials(user?.name)}
-            </div>
+            <UserAvatarCircle user={user} size={22} highlight={showMenu} />
             <span style={{ fontSize: 10, fontWeight: showMenu ? 700 : 500 }}>More</span>
           </button>
         </div>
@@ -168,12 +196,8 @@ export default function NavRail({
 
               {/* User profile summary */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: `1px solid ${colors.borderDim}` }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: "50%", background: "#0D2244",
-                  border: `1px solid ${colors.border}`, display: "flex", alignItems: "center",
-                  justifyContent: "center", fontSize: 16, fontWeight: 700, color: colors.gold,
-                }}>
-                  {getInitials(user?.name)}
+                <div onClick={() => { onSettingsClick?.(); setShowMenu(false); }} style={{ cursor: "pointer" }}>
+                  <UserAvatarCircle user={user} size={46} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: colors.text, fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -187,7 +211,7 @@ export default function NavRail({
                     {connected ? "Connected" : "Reconnecting..."} · {user?.role?.replace("_", " ")}
                   </div>
                 </div>
-                <NotificationBell onNavigate={handleNavigation} />
+                <NotificationBell onNavigate={handleNavigation} isMobile={true} />
               </div>
 
               {/* Action list */}
@@ -201,7 +225,7 @@ export default function NavRail({
                   }}
                 >
                   <span style={{ fontSize: 18 }}>⚙️</span>
-                  <span>App Settings</span>
+                  <span>Profile & App Settings</span>
                 </button>
 
                 {isAdmin && (
@@ -283,10 +307,10 @@ export default function NavRail({
 
       <div style={{ flex: 1 }} />
 
-      <NotificationBell onNavigate={handleNavigation} />
+      <NotificationBell onNavigate={handleNavigation} isMobile={false} />
       <NavBtn
         icon="⚙️"
-        label="Settings"
+        label="Profile & Settings"
         active={false}
         onClick={() => { onSettingsClick?.(); setShowAdminMenu(false); }}
       />
@@ -343,16 +367,12 @@ export default function NavRail({
       />
 
       <div
-        onClick={() => { if (window.confirm("Sign out?")) logout(); }}
-        title={`${user?.name} — click to sign out`}
-        style={{
-          width: 36, height: 36, borderRadius: "50%", background: "#0D2244",
-          border: `1px solid ${colors.border}`, display: "flex", alignItems: "center",
-          justifyContent: "center", cursor: "pointer", fontSize: 13,
-          fontWeight: 700, color: colors.gold, marginTop: 4,
-        }}
+        onClick={() => { onSettingsClick?.(); }}
+        onContextMenu={(e) => { e.preventDefault(); if (window.confirm("Sign out?")) logout(); }}
+        title={`${user?.name} — click for Profile & Settings`}
+        style={{ cursor: "pointer", marginTop: 4 }}
       >
-        {getInitials(user?.name)}
+        <UserAvatarCircle user={user} size={36} />
       </div>
     </div>
   );

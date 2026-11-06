@@ -110,7 +110,7 @@ export default function BulkMemoModal({ onClose }) {
 
         <div style={{ flex:1, overflowY:"auto" }}>
           {tab === "compose" && (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", height:"100%" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 280px), 1fr))", minHeight:"100%" }}>
 
               {/* Left: Memo form */}
               <div style={{ padding:20, borderRight:`1px solid ${C.border}`, overflowY:"auto" }}>

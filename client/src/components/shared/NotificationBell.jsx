@@ -12,7 +12,7 @@ const TYPE_ICONS = {
   EMERGENCY:"🚨", DIRECT_MESSAGE:"💬",
 };
 
-export default function NotificationBell({ onNavigate }) {
+export default function NotificationBell({ onNavigate, isMobile = false }) {
   const { on } = useSocket();
   const [open, setOpen]           = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -71,9 +71,17 @@ export default function NotificationBell({ onNavigate }) {
       </button>
 
       {open && (
-        <div style={{ position:"absolute",left:8,top:"calc(100% + 8px)",width:340,background:colors.surfaceAlt,
-          border:`1px solid ${colors.border}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",
-          zIndex:500,overflow:"hidden",maxHeight:"70vh",display:"flex",flexDirection:"column" }}>
+        <div style={isMobile ? {
+          position:"fixed", left:12, right:12, bottom:84,
+          background:colors.surfaceAlt, border:`1px solid ${colors.border}`,
+          borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.7)",
+          zIndex:600, overflow:"hidden", maxHeight:"65vh", display:"flex", flexDirection:"column",
+        } : {
+          position:"absolute", left:"calc(100% + 10px)", bottom:0, width:340,
+          background:colors.surfaceAlt, border:`1px solid ${colors.border}`,
+          borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.5)",
+          zIndex:500, overflow:"hidden", maxHeight:"70vh", display:"flex", flexDirection:"column",
+        }}>
           <div style={{ padding:"12px 14px",borderBottom:`1px solid ${colors.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
             <span style={{ color:colors.text,fontWeight:700,fontSize:14 }}>Notifications</span>
             {unread>0 && <button onClick={markAllRead} style={{ background:"none",border:"none",color:colors.gold,fontSize:12,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>Mark all read</button>}

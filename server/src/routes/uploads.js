@@ -25,7 +25,7 @@ const ALLOWED_MIME = {
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const UPLOAD_BASE   = path.join(__dirname, "../../../uploads");
+const UPLOAD_BASE   = path.join(__dirname, "../../uploads");
 ["images","documents"].forEach(d => fs.mkdirSync(path.join(UPLOAD_BASE, d), { recursive: true }));
 
 const storage = multer.diskStorage({
@@ -46,11 +46,10 @@ const upload = multer({
   limits: { fileSize: MAX_FILE_SIZE, files: 5 },
 });
 
-const buildUrl = (req, filename, mimeType) => {
+const buildUrl = (_req, filename, mimeType) => {
   const info  = ALLOWED_MIME[mimeType];
   const subdir = info?.dir || "documents";
-  const base  = process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
-  return `${base}/uploads/${subdir}/${filename}`;
+  return `/uploads/${subdir}/${filename}`;
 };
 
 // POST /api/uploads/message/:channelId
@@ -77,7 +76,7 @@ router.post("/message/:channelId", authenticate, upload.array("files", 5), async
 
     const fullMessage = await prisma.message.findUnique({
       where: { id: result.message.id },
-      include: { author: { select: { id:true, name:true, staffId:true, role:true, avatar:true } }, attachments: true, reactions: true, _count: { select: { replies: true } } },
+      include: { author: { select: { id:true, name:true, staffId:true, role:true, avatar:true, avatarUrl:true } }, attachments: true, reactions: true, _count: { select: { replies: true } } },
     });
 
     req.app.get("io").to(`channel:${channelId}`).emit("message:new", fullMessage);

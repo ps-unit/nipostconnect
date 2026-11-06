@@ -6,6 +6,9 @@ const api = axios.create({ baseURL: "/api", headers: { "Content-Type": "applicat
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
   return config;
 });
 
@@ -66,8 +69,14 @@ export const adminAPI = {
   setupData:()=>api.get("/admin/setup-data"),
 };
 export const uploadsAPI = {
-  toChannel:(cId,fd,onP)=>api.post(`/uploads/message/${cId}`,fd,{headers:{"Content-Type":"multipart/form-data"},onUploadProgress:onP}),
+  toChannel:(cId,fd,onP)=>api.post(`/uploads/message/${cId}`,fd,{onUploadProgress:onP}),
   deleteAttachment:(id)=>api.delete(`/uploads/${id}`),
+};
+export const profileAPI = {
+  getSettings:()=>api.get("/profile/settings"),
+  updateSettings:(d)=>api.patch("/profile/settings",d),
+  uploadAvatar:(fd)=>api.post("/profile/avatar",fd),
+  deleteAvatar:()=>api.delete("/profile/avatar"),
 };
 export const notificationsAPI = {
   vapidKey:()=>api.get("/notifications/vapid-public-key"), subscribe:(d)=>api.post("/notifications/subscribe",d),

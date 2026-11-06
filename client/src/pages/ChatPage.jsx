@@ -28,10 +28,10 @@ import AIMemoModal from "../components/modals/AIMemoModal";
 import TwoFASetupModal from "../components/modals/TwoFASetupModal";
 import OrgSettingsModal from "../components/modals/OrgSettingsModal";
 
-import { colors } from "../components/shared/styles";
+import { colors, resolveUploadUrl } from "../components/shared/styles";
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { on, joinChannel } = useSocket();
   const { isMobile, isTablet } = useResponsive();
 
@@ -81,6 +81,11 @@ export default function ChatPage() {
     if (msg.channelId !== activeChannelId && msg.author?.id !== user.id)
       setUnreadMap(m => ({ ...m, [msg.channelId]: (m[msg.channelId] || 0) + 1 }));
   }), [on, activeChannelId, user.id]);
+  useEffect(() => on("user:avatar:updated", ({ userId, avatarUrl }) => {
+    if (userId === user.id) {
+      updateUser({ avatarUrl: resolveUploadUrl(avatarUrl) });
+    }
+  }), [on, user.id, updateUser]);
 
   const selectChannel = (channelId) => {
     setActiveChannelId(channelId);

@@ -19,7 +19,7 @@ const generateTokens = (userId, role) => ({
 const safeUser = u => ({
   id: u.id, name: u.name, staffId: u.staffId, email: u.email,
   role: u.role, status: u.status, state: u.state, department: u.department,
-  postOffice: u.postOffice, avatar: u.avatar, createdAt: u.createdAt,
+  postOffice: u.postOffice, phone: u.phone, avatar: u.avatar, avatarUrl: u.avatarUrl, createdAt: u.createdAt,
   twoFAEnabled: u.twoFA?.isEnabled || false,
 });
 
@@ -29,9 +29,9 @@ router.post("/register", [
   body("staffId").trim().notEmpty(),
   body("email").isEmail().normalizeEmail(),
   body("password").isLength({ min:8 }),
-  body("phone").optional().isMobilePhone(),
-  body("stateId").optional().isUUID(),
-  body("departmentId").optional().isUUID(),
+  body("phone").optional({ values: "falsy" }).trim().isLength({ max: 30 }),
+  body("stateId").optional({ values: "falsy" }).isUUID(),
+  body("departmentId").optional({ values: "falsy" }).isUUID(),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);

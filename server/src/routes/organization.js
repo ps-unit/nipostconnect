@@ -13,7 +13,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Logo upload setup
-const LOGO_DIR = path.join(__dirname, "../../../uploads/org");
+const LOGO_DIR = path.join(__dirname, "../../uploads/org");
 fs.mkdirSync(LOGO_DIR, { recursive: true });
 
 const logoStorage = multer.diskStorage({
@@ -108,8 +108,7 @@ router.post("/logo", authenticate, isSuperAdmin,
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
       const settings = await getOrCreate();
-      const base     = process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
-      const logoUrl  = `${base}/uploads/org/${req.file.filename}`;
+      const logoUrl  = `/uploads/org/${req.file.filename}`;
 
       // Delete old logo from disk if exists
       if (settings.logoUrl) {

@@ -1,10 +1,22 @@
-// client/src/components/chat/MessageBubble.jsx — v2 (+ attachments + read receipts)
+// client/src/components/chat/MessageBubble.jsx — v2 (+ attachments + read receipts + avatarUrl)
 import { useState } from "react";
 import { format } from "date-fns";
-import { colors, ROLE_BADGE, MSG_TYPE_META } from "../shared/styles";
+import { colors, ROLE_BADGE, MSG_TYPE_META, resolveUploadUrl } from "../shared/styles";
 import { AttachmentViewer, ReadReceiptsBar } from "./AttachmentViewer";
 
-function Avatar({ name="", size=36 }) {
+function Avatar({ name="", avatarUrl=null, size=36 }) {
+  const [imgErr, setImgErr] = useState(false);
+  const resolved = resolveUploadUrl(avatarUrl);
+  if (resolved && !imgErr) {
+    return (
+      <img
+        src={resolved}
+        alt={name}
+        onError={() => setImgErr(true)}
+        style={{ width:size, height:size, borderRadius:"50%", objectFit:"cover", flexShrink:0, display:"block" }}
+      />
+    );
+  }
   const initials = name.split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase();
   const C = ["#C9952A","#1A6B4A","#8B2252","#1A4A8B","#5C3A1E","#2A5C8B","#8B4513","#2C5F2E","#5B2A8B"];
   let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h);
@@ -34,11 +46,11 @@ function PollWidget({ poll, onVote }) {
         return (
           <div key={opt.id} onClick={()=>!voted&&!expired&&onVote(poll.id,opt.id)}
             style={{ marginBottom:8, cursor:voted||expired?"default":"pointer" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
               <span style={{ color:isVote?colors.gold:colors.textMid, fontSize:13, fontWeight:isVote?600:400 }}>
                 {isVote?"✓ ":""}{opt.label}
               </span>
-              <span style={{ color:colors.muted, fontSize:12 }}>{pct}% · {count}</span>
+              <span style={{ color:colors.muted, fontSize:12, flexShrink:0 }}>{pct}% · {count}</span>
             </div>
             <div style={{ height:8, background:"#1A3356", borderRadius:4, overflow:"hidden" }}>
               <div style={{ height:"100%", width:`${pct}%`,
@@ -62,11 +74,12 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   if (msg.deletedAt) {
-    return <div style={{ padding:"4px 16px 4px 66px", color:colors.ghost, fontSize:13, fontStyle:"italic" }}>[Message deleted]</div>;
+    return <div style={{ padding:"4px 16px 4px 62px", color:colors.ghost, fontSize:13, fontStyle:"italic" }}>[Message deleted]</div>;
   }
 
   const authorName = msg.isAnonymous ? "Anonymous" : (msg.author?.name || "Unknown");
-  const badge      = msg.author ? ROLE_BADGE[msg.author.role] : null;
+  const avatarUrl  = msg.isAnonymous ? null : msg.author?.avatarUrl;
+  const badge      = (!msg.isAnonymous && msg.author) ? ROLE_BADGE[msg.author.role] : null;
   const meta       = MSG_TYPE_META[msg.type];
   const isPinned   = !!msg.pinned;
   const isOwn      = msg.author?.id === currentUserId;
@@ -85,16 +98,16 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
     <div
       onMouseEnter={()=>setShowActions(true)}
       onMouseLeave={()=>{ setShowActions(false); setShowEmojiPicker(false); }}
-      style={{ display:"flex", gap:12, padding:"8px 16px",
+      style={{ display:"flex", gap:10, padding:"8px clamp(10px, 2.5vw, 16px)",
         borderLeft:meta?`3px solid ${meta.bar}`:"3px solid transparent",
         background:isPinned?"rgba(212,168,67,0.05)":"transparent",
         marginBottom:2, position:"relative", transition:"background 0.1s" }}>
 
-      <Avatar name={authorName} size={38} />
+      <Avatar name={authorName} avatarUrl={avatarUrl} size={36} />
 
       <div style={{ flex:1, minWidth:0 }}>
         {/* Header row */}
-        <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:4, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4, flexWrap:"wrap" }}>
           <span style={{ color:colors.text, fontWeight:700, fontSize:14 }}>{authorName}</span>
           {badge && (
             <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20,
@@ -118,7 +131,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
             title="Message options"
             style={{
               background: "none", border: "none", color: showActions ? colors.gold : colors.ghost,
-              cursor: "pointer", fontSize: 14, padding: "0 4px", lineHeight: 1,
+              cursor: "pointer", fontSize: 14, padding: "2px 4px", lineHeight: 1, minHeight: "auto",
             }}
           >
             •••
@@ -154,7 +167,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
               <button key={emoji} onClick={()=>onReact(msg.id,emoji)} title={data.users.join(", ")}
                 style={{ background:data.mine?"rgba(212,168,67,0.15)":"rgba(255,255,255,0.07)",
                   border:`1px solid ${data.mine?colors.gold:"rgba(255,255,255,0.1)"}`,
-                  borderRadius:12, padding:"3px 9px", cursor:"pointer",
+                  borderRadius:12, padding:"3px 9px", cursor:"pointer", minHeight:"auto",
                   color:colors.textMid, fontSize:13, display:"flex", alignItems:"center", gap:4 }}>
                 {emoji} <span style={{ fontSize:12 }}>{data.count}</span>
               </button>
@@ -195,7 +208,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
                 boxShadow:"0 6px 20px rgba(0,0,0,0.6)" }}>
                 {QUICK_EMOJIS.map(e => (
                   <button key={e} onClick={()=>{ onReact(msg.id,e); setShowEmojiPicker(false); setShowActions(false); }}
-                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, borderRadius:4, padding:"2px 3px" }}
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, borderRadius:4, padding:"2px 3px", minHeight:"auto" }}
                     onMouseEnter={el=>el.currentTarget.style.background="rgba(255,255,255,0.1)"}
                     onMouseLeave={el=>el.currentTarget.style.background="none"}>
                     {e}
@@ -216,7 +229,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
 function ABtn({ icon, label, onClick, danger }) {
   return (
     <button onClick={onClick} title={label}
-      style={{ background:"none", border:"none", cursor:"pointer", fontSize:14,
+      style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, minHeight:"auto",
         padding:"3px 5px", borderRadius:4, color:danger?"#F87171":colors.muted }}
       onMouseEnter={e=>e.currentTarget.style.background=danger?"rgba(239,68,68,0.1)":"rgba(255,255,255,0.08)"}
       onMouseLeave={e=>e.currentTarget.style.background="none"}>

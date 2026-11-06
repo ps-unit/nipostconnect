@@ -78,7 +78,7 @@ function OverviewTab() {
   ];
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 130px), 1fr))", gap:12, marginBottom:20 }}>
         {cards.map(c => (
           <div key={c.label} style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:"14px 16px" }}>
             <div style={{ fontSize:22, marginBottom:6 }}>{c.icon}</div>
@@ -87,7 +87,7 @@ function OverviewTab() {
           </div>
         ))}
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap:12 }}>
         <div style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:14 }}>
           <div style={{ color:colors.muted, fontSize:11, fontWeight:700, letterSpacing:"0.07em", marginBottom:10 }}>THIS WEEK</div>
           {[["New Staff",stats.thisWeek?.newUsers||0],["Messages",stats.thisWeek?.messages||0]].map(([k,v])=>(

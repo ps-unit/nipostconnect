@@ -24,9 +24,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────────
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, extra = {}) => {
     setError(null);
-    const res = await authAPI.login({ email, password });
+    const res = await authAPI.login({ email, password, ...extra });
+    if (res.data.requires2FA) return res.data;
     const { user, accessToken, refreshToken } = res.data;
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);

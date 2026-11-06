@@ -205,3 +205,12 @@ export const CHANNEL_ICONS = {
   EMERGENCY:    "🚨",
   GENERAL:      "💬",
 };
+
+// Normalize upload URLs so both legacy absolute URLs and relative /uploads/... paths work across all devices
+export function resolveUploadUrl(url) {
+  if (!url) return null;
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+  const idx = url.indexOf("/uploads/");
+  if (idx !== -1) return url.slice(idx);
+  return url;
+}

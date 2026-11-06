@@ -71,7 +71,7 @@ router.get("/", authenticate, async (req, res, next) => {
         },
         select: {
           id: true, name: true, staffId: true, email: true, role: true,
-          postOffice: true, lastSeenAt: true,
+          postOffice: true, lastSeenAt: true, avatar: true, avatarUrl: true,
           state: { select: { name: true } },
           department: { select: { name: true } },
         },

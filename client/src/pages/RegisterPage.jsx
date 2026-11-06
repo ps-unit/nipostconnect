@@ -1,18 +1,25 @@
 // src/pages/RegisterPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { usersAPI } from "../services/api";
-import { s, colors } from "../components/shared/styles";
+import api, { usersAPI } from "../services/api";
+import { s, colors, resolveUploadUrl } from "../components/shared/styles";
+
+function getInitials(name = "") {
+  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "📷";
+}
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, updateUser } = useAuth();
   const navigate = useNavigate();
+  const fileRef = useRef();
 
-  const [step, setStep]         = useState(0);
-  const [options, setOptions]   = useState({ states: [], departments: [] });
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [step, setStep]               = useState(0);
+  const [options, setOptions]         = useState({ states: [], departments: [] });
+  const [error, setError]             = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [avatarFile, setAvatarFile]   = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [form, setForm] = useState({
     name: "", staffId: "", email: "", password: "", confirmPassword: "",
     phone: "", stateId: "", departmentId: "", postOffice: "",
@@ -28,12 +35,24 @@ export default function RegisterPage() {
 
   const steps = ["Personal Info", "Assignment", "Credentials", "Review"];
 
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Profile photo must be under 5 MB");
+      return;
+    }
+    setError("");
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   const validateStep = () => {
     if (step === 0) {
       if (!form.name.trim()) return "Full name is required";
       if (!form.staffId.trim()) return "Staff ID is required";
       if (!form.email.includes("@")) return "Valid email required";
-      if (!form.email.endsWith("@nipost.gov.ng")) return "Only @nipost.gov.ng email addresses are permitted";
+      if (!form.email.toLowerCase().endsWith("@nipost.gov.ng")) return "Only @nipost.gov.ng email addresses are permitted";
     }
     if (step === 1) {
       if (!form.stateId) return "State of posting is required";
@@ -59,6 +78,19 @@ export default function RegisterPage() {
     try {
       const { confirmPassword, ...data } = form;
       await register(data);
+
+      // If user selected a profile picture during setup, upload it right after registration
+      if (avatarFile) {
+        try {
+          const fd = new FormData();
+          fd.append("avatar", avatarFile);
+          const avRes = await api.post("/profile/avatar", fd);
+          updateUser({ avatarUrl: resolveUploadUrl(avRes.data.avatarUrl) });
+        } catch (uploadErr) {
+          console.warn("Avatar upload after registration failed:", uploadErr);
+        }
+      }
+
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || "Registration failed");
@@ -68,20 +100,20 @@ export default function RegisterPage() {
     }
   };
 
-  const selectedState = options.states.find(s => s.id === form.stateId);
+  const selectedState = options.states.find(st => st.id === form.stateId);
   const selectedDept  = options.departments.find(d => d.id === form.departmentId);
 
   return (
-    <div style={s.authPage}>
-      <div style={{ ...s.authCard, maxWidth: 520 }}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>📮</div>
+    <div style={{ ...s.authPage, overflowY: "auto" }}>
+      <div style={{ ...s.authCard, maxWidth: 520, margin: "auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 38, marginBottom: 6 }}>📮</div>
           <h1 style={{ color: colors.gold, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Staff Registration</h1>
           <p style={{ color: colors.muted, fontSize: 12 }}>Step {step + 1} of {steps.length} — {steps[step]}</p>
         </div>
 
         {/* Progress */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 22 }}>
           {steps.map((_, i) => (
             <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? colors.gold : "#1E3A5F", transition: "background 0.3s" }} />
           ))}
@@ -89,9 +121,72 @@ export default function RegisterPage() {
 
         {error && <div style={s.errorBanner}>{error}</div>}
 
-        {/* ── Step 0: Personal Info ── */}
+        {/* ── Step 0: Personal Info + Profile Photo ── */}
         {step === 0 && (
           <>
+            {/* Profile Photo Picker */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 16, marginBottom: 18,
+              padding: "12px 14px", background: "#081832", border: `1px solid ${colors.border}`, borderRadius: 10,
+            }}>
+              <div
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  width: 64, height: 64, borderRadius: "50%", flexShrink: 0,
+                  background: "#0D2244", border: `2px dashed ${avatarPreview ? colors.gold : colors.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", overflow: "hidden", position: "relative",
+                }}
+              >
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Profile preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: form.name ? 18 : 22, fontWeight: 700, color: colors.gold }}>
+                    {getInitials(form.name)}
+                  </span>
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: colors.text, fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                  Profile Photo <span style={{ color: colors.muted, fontWeight: 400, fontSize: 11 }}>(optional)</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    style={{
+                      padding: "5px 12px", borderRadius: 6, border: `1px solid ${colors.border}`,
+                      background: "transparent", color: colors.gold, fontSize: 12, fontWeight: 600,
+                      cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    📷 {avatarPreview ? "Change Photo" : "Upload Photo"}
+                  </button>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={() => { setAvatarFile(null); setAvatarPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                      style={{
+                        padding: "5px 10px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)",
+                        background: "rgba(239,68,68,0.08)", color: "#F87171", fontSize: 12,
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div style={{ color: colors.ghost, fontSize: 11, marginTop: 4 }}>JPG, PNG or WEBP · max 5 MB</div>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarSelect}
+                style={{ display: "none" }}
+              />
+            </div>
+
             <label style={s.label}>Full Name *</label>
             <input {...f("name")} placeholder="e.g. Aminu Ibrahim Musa" style={s.input} />
 
@@ -156,6 +251,11 @@ export default function RegisterPage() {
         {/* ── Step 3: Review ── */}
         {step === 3 && (
           <div>
+            {avatarPreview && (
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+                <img src={avatarPreview} alt="Profile preview" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `3px solid ${colors.gold}` }} />
+              </div>
+            )}
             <div style={{ background: "#081832", border: "1px solid #1E3A5F", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
               {[
                 ["Full Name",    form.name],
@@ -166,9 +266,9 @@ export default function RegisterPage() {
                 ["Department",   selectedDept?.name  || "—"],
                 ["Post Office",  form.postOffice || "—"],
               ].map(([label, value]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "9px 14px", borderBottom: "1px solid #1E3A5F", fontSize: 13 }}>
-                  <span style={{ color: colors.muted }}>{label}</span>
-                  <span style={{ color: colors.text, fontWeight: 500 }}>{value}</span>
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 14px", borderBottom: "1px solid #1E3A5F", fontSize: 13 }}>
+                  <span style={{ color: colors.muted, flexShrink: 0 }}>{label}</span>
+                  <span style={{ color: colors.text, fontWeight: 500, textAlign: "right", wordBreak: "break-word" }}>{value}</span>
                 </div>
               ))}
             </div>

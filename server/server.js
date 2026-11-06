@@ -70,6 +70,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "7d", etag: true }));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads"), { maxAge: "7d", etag: true }));
 
 // Trust reverse proxy (Nginx) for real IP in rate limiter
 app.set("trust proxy", 1);
