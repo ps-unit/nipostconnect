@@ -31,8 +31,10 @@ function validateEnv() {
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
     console.warn("⚠️  JWT_SECRET is too short. Use at least 64 random characters in production.");
   }
-  if (process.env.NODE_ENV === "production" && process.env.JWT_SECRET === "nipost_connect_jwt_secret_change_in_production_min_64_chars") {
-    console.error("❌ FATAL: You are using the default JWT_SECRET in production. Change it immediately.");
+  const looksLikePlaceholder = (v) => !v || /change_in_production|^<.*>$/i.test(v);
+  if (process.env.NODE_ENV === "production" &&
+      (looksLikePlaceholder(process.env.JWT_SECRET) || looksLikePlaceholder(process.env.JWT_REFRESH_SECRET))) {
+    console.error("❌ FATAL: JWT_SECRET / JWT_REFRESH_SECRET look like placeholder values in production. Set strong random secrets.");
     process.exit(1);
   }
 
