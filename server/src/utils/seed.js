@@ -94,14 +94,14 @@ async function seedDatabase(prisma = defaultPrisma) {
 
   // ── Super Admin ────────────────────────────────────────────────────────────
   console.log("👤 Creating Super Admin...");
-  const passwordHash = await bcrypt.hash(
-    process.env.SEED_ADMIN_PASSWORD || "NiPOST@Admin2026", 12
-  );
+  const passwordHash = process.env.SEED_ADMIN_PASSWORD
+    ? await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD, 12)
+    : null;
 
   const superAdmin = await prisma.user.upsert({
     where: { email: process.env.SEED_ADMIN_EMAIL || "pmg@nipost.gov.ng" },
     update: {
-      passwordHash,
+      ...(passwordHash ? { passwordHash } : {}),
       name:         process.env.SEED_ADMIN_NAME    || "Postmaster General",
       staffId:      process.env.SEED_ADMIN_STAFF_ID || "NPS/HQ/2024/001",
     },
@@ -109,7 +109,7 @@ async function seedDatabase(prisma = defaultPrisma) {
       name:         process.env.SEED_ADMIN_NAME    || "Postmaster General",
       staffId:      process.env.SEED_ADMIN_STAFF_ID || "NPS/HQ/2024/001",
       email:        process.env.SEED_ADMIN_EMAIL   || "pmg@nipost.gov.ng",
-      passwordHash,
+      passwordHash: passwordHash || await bcrypt.hash("ChangeMeImmediately!", 12),
       role:         "SUPER_ADMIN",
       status:       "ACTIVE",
       departmentId: deptRecords["executive-office"].id,
@@ -250,7 +250,7 @@ async function seedDatabase(prisma = defaultPrisma) {
   console.log("\n🟡 Seed completed successfully!");
   console.log("─────────────────────────────────────");
   console.log(`   Super Admin email    : ${superAdmin.email}`);
-  console.log(`   Super Admin password : ${process.env.SEED_ADMIN_PASSWORD || "NiPOST@Admin2026"}`);
+  console.log(`   Super Admin password : (value of SEED_ADMIN_PASSWORD)`);
   console.log(`   States seeded        : ${STATES.length}`);
   console.log(`   Departments seeded   : ${DEPARTMENTS.length}`);
   console.log(`   Channels created     : ${allChannels.length}`);

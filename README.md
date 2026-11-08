@@ -35,7 +35,7 @@ Open **http://localhost:5173**
 **Default Super Admin login:**
 ```
 Email    : pmg@nipost.gov.ng
-Password : NiPOST@Admin2026
+Password : the value of SEED_ADMIN_PASSWORD in server/.env
 ```
 > Change immediately after first login via Admin Panel → Staff tab.
 
@@ -181,7 +181,7 @@ VAPID_PRIVATE_KEY=your_private_key
 VAPID_SUBJECT=mailto:ict@nipost.gov.ng
 
 SEED_ADMIN_EMAIL="pmg@nipost.gov.ng"
-SEED_ADMIN_PASSWORD="NiPOST@Admin2026"
+SEED_ADMIN_PASSWORD="<choose a strong password>"
 SEED_ADMIN_NAME="Postmaster General"
 SEED_ADMIN_STAFF_ID="NPS/HQ/2024/001"
 ```
