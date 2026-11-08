@@ -22,15 +22,12 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-
-    const socket = io(window.location.origin, {
-      auth: { token },
-      transports: ["websocket"],
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-    });
+const socket = io(import.meta.env.VITE_API_URL || window.location.origin, {
+  auth: { token },
+  transports: ["websocket"],
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 10,
+});
 
     socketRef.current = socket;
 
