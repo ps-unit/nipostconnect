@@ -6,3 +6,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Non-secret configuration values (domains, URLs, durations, public keys) that
+# legitimately appear in source files or the client bundle. Real secrets
+# (JWT secrets, passwords, private keys, DATABASE_URL, API keys) stay scanned.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ALLOWED_EMAIL_DOMAIN,CLIENT_URL,SERVER_URL,VITE_API_URL,VAPID_SUBJECT,VAPID_PUBLIC_KEY,JWT_EXPIRES_IN,JWT_REFRESH_EXPIRES_IN,PORT,NODE_ENV,UPLOAD_MAX_SIZE_MB,SEED_ADMIN_EMAIL,SEED_ADMIN_NAME,SEED_ADMIN_STAFF_ID"
