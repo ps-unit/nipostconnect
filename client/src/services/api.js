@@ -1,7 +1,12 @@
 // client/src/services/api.js — v3 (adds analytics, scheduled, bulk, hrmis, search)
 import axios from "axios";
 
-const api = axios.create({ baseURL: "/api", headers: { "Content-Type": "application/json" } });
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+const api = axios.create({
+  baseURL: `${API_URL}/api`,
+  headers: { "Content-Type": "application/json" },
+});
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
