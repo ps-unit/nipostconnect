@@ -25,9 +25,15 @@ export function SocketProvider({ children }) {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    const socket = io(window.location.origin, {
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/\/$/, "")
+      : (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+          ? window.location.origin
+          : "https://nipost-connect-backend.onrender.com");
+
+    const socket = io(socketUrl, {
       auth: { token },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
     });

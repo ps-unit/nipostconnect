@@ -117,12 +117,21 @@ router.get("/me/channels", authenticate, async (req, res, next) => {
 });
 
 // ── GET /api/users/setup/states-departments — for registration form ───────────
+const { ensureSeeded } = require("../utils/seed");
+
 router.get("/setup/options", async (req, res, next) => {
   try {
-    const [states, departments] = await Promise.all([
+    let [states, departments] = await Promise.all([
       prisma.state.findMany({ orderBy: { name: "asc" } }),
       prisma.department.findMany({ orderBy: { name: "asc" } }),
     ]);
+    if (states.length === 0 || departments.length === 0) {
+      await ensureSeeded(prisma);
+      [states, departments] = await Promise.all([
+        prisma.state.findMany({ orderBy: { name: "asc" } }),
+        prisma.department.findMany({ orderBy: { name: "asc" } }),
+      ]);
+    }
     res.json({ states, departments });
   } catch (err) { next(err); }
 });

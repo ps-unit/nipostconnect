@@ -7,8 +7,25 @@ const prisma = new PrismaClient();
 const onlineUsers = new Map(); // userId → Set<socketId>
 
 module.exports = function initSocket(httpServer) {
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://nipostconnect.netlify.app",
+    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",").map(s => s.trim().replace(/\/$/, "")) : []),
+  ];
+
   const io = new Server(httpServer, {
-    cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true },
+    cors: {
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        const clean = origin.replace(/\/$/, "");
+        if (allowedOrigins.includes(clean) || clean.endsWith(".netlify.app")) {
+          return cb(null, true);
+        }
+        return cb(null, true);
+      },
+      credentials: true,
+    },
     pingTimeout: 60000,
     pingInterval: 25000,
   });
@@ -21,7 +38,7 @@ module.exports = function initSocket(httpServer) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id:true, name:true, role:true, stateId:true, departmentId:true },
+        select: { id: true, name: true, role: true, stateId: true, departmentId: true },
       });
       if (!user) return next(new Error("User not found"));
       socket.user = user;
@@ -44,19 +61,19 @@ module.exports = function initSocket(httpServer) {
     try {
       const unread = await prisma.notification.count({ where: { userId, isRead: false } });
       socket.emit("notifications:unread", { count: unread });
-    } catch {}
+    } catch { }
 
     // Auto-join channel rooms
     try {
       const memberships = await prisma.channelMember.findMany({
-        where: { userId }, select: { channelId:true, isAdmin:true },
+        where: { userId }, select: { channelId: true, isAdmin: true },
       });
       memberships.forEach(({ channelId, isAdmin }) => {
         socket.join(`channel:${channelId}`);
         if (isAdmin) socket.join(`channel:${channelId}:admins`);
       });
       if (role === "SUPER_ADMIN") {
-        const all = await prisma.channel.findMany({ select: { id:true } });
+        const all = await prisma.channel.findMany({ select: { id: true } });
         all.forEach(ch => socket.join(`channel:${ch.id}`));
       }
     } catch (err) { console.error("[Socket] Channel join error:", err.message); }
@@ -66,11 +83,11 @@ module.exports = function initSocket(httpServer) {
       socket.to(`channel:${channelId}`).emit("user:typing", { userId, name, channelId }));
     socket.on("typing:stop", ({ channelId }) =>
       socket.to(`channel:${channelId}`).emit("user:stopTyping", { userId, channelId }));
-    socket.on("dm:typing",     ({ receiverId }) =>
-      socket.to(`user:${receiverId}`).emit("dm:typing",     { senderId: userId, name }));
+    socket.on("dm:typing", ({ receiverId }) =>
+      socket.to(`user:${receiverId}`).emit("dm:typing", { senderId: userId, name }));
     socket.on("dm:stopTyping", ({ receiverId }) =>
       socket.to(`user:${receiverId}`).emit("dm:stopTyping", { senderId: userId }));
-    socket.on("channel:join",  id => socket.join(`channel:${id}`));
+    socket.on("channel:join", id => socket.join(`channel:${id}`));
     socket.on("channel:leave", id => socket.leave(`channel:${id}`));
     socket.on("messages:read", async ({ channelId }) => {
       try {
@@ -78,23 +95,23 @@ module.exports = function initSocket(httpServer) {
           where: { userId_channelId: { userId, channelId } },
           data: { lastReadAt: new Date() },
         });
-      } catch {}
+      } catch { }
     });
     socket.on("heartbeat", async () => {
-      try { await prisma.user.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }); } catch {}
+      try { await prisma.user.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }); } catch { }
     });
     socket.on("notification:read", async ({ notificationId }) => {
       try {
         await prisma.notification.updateMany({ where: { id: notificationId, userId }, data: { isRead: true } });
         const unread = await prisma.notification.count({ where: { userId, isRead: false } });
         socket.emit("notifications:unread", { count: unread });
-      } catch {}
+      } catch { }
     });
     socket.on("notifications:markAllRead", async () => {
       try {
         await prisma.notification.updateMany({ where: { userId, isRead: false }, data: { isRead: true } });
         socket.emit("notifications:unread", { count: 0 });
-      } catch {}
+      } catch { }
     });
 
     // ── Disconnect ────────────────────────────────────────────────────────
@@ -107,7 +124,7 @@ module.exports = function initSocket(httpServer) {
           io.emit("user:offline", { userId });
         }
       }
-      try { await prisma.user.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }); } catch {}
+      try { await prisma.user.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }); } catch { }
       console.log(`[Socket] ${name} disconnected`);
     });
   });
@@ -120,10 +137,10 @@ module.exports = function initSocket(httpServer) {
       const onlineIds = Array.from(onlineUsers.keys());
       const offlineMembers = await prisma.channelMember.findMany({
         where: { channelId: message.channelId, isMuted: false, userId: { notIn: [message.authorId, ...onlineIds] } },
-        select: { userId:true },
+        select: { userId: true },
       });
       if (!offlineMembers.length) return;
-      const payload = ["ANNOUNCEMENT","MEMO"].includes(message.type)
+      const payload = ["ANNOUNCEMENT", "MEMO"].includes(message.type)
         ? buildAnnouncementPayload(message) : buildMessagePayload(message, channel.name);
       const userIds = offlineMembers.map(m => m.userId);
       await sendToUsers(userIds, payload);
@@ -152,8 +169,10 @@ module.exports = function initSocket(httpServer) {
       const isOnline = onlineUsers.has(dm.receiverId);
       if (!isOnline) await sendToUser(dm.receiverId, buildDMPayload(dm, dm.sender?.name || "Staff"));
       await prisma.notification.create({
-        data: { userId: dm.receiverId, title: `💬 ${dm.sender?.name || "Staff"}`,
-          body: dm.content.slice(0, 100), type: "DIRECT_MESSAGE", url: `/dm/${dm.senderId}`, refId: dm.id },
+        data: {
+          userId: dm.receiverId, title: `💬 ${dm.sender?.name || "Staff"}`,
+          body: dm.content.slice(0, 100), type: "DIRECT_MESSAGE", url: `/dm/${dm.senderId}`, refId: dm.id
+        },
       });
       const unread = await prisma.notification.count({ where: { userId: dm.receiverId, isRead: false } });
       io.to(`user:${dm.receiverId}`).emit("notifications:unread", { count: unread });

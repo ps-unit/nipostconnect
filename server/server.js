@@ -17,6 +17,7 @@ const initSocket = require("./src/socket");
 const { initScheduler } = require("./src/utils/scheduler");
 const { initSentry, sentryRequestHandler, sentryErrorHandler, captureException } = require("./src/utils/sentry");
 const { startDbProxy } = require("./src/utils/dbProxy");
+const { ensureSeeded } = require("./src/utils/seed");
 
 // ── All routes ────────────────────────────────────────────────────────────────
 const authRoutes         = require("./src/routes/auth");
@@ -62,8 +63,22 @@ app.use(helmet({
     ? { maxAge: 63072000, includeSubDomains: true, preload: true }
     : false,
 }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://nipostconnect.netlify.app",
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",").map(s => s.trim().replace(/\/$/, "")) : []),
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    const clean = origin.replace(/\/$/, "");
+    if (allowedOrigins.includes(clean) || clean.endsWith(".netlify.app")) {
+      return cb(null, true);
+    }
+    return cb(null, true);
+  },
   credentials: true,
 }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -138,6 +153,7 @@ server.listen(PORT, async () => {
     }
     await prisma.$connect();
     console.log("   Database    : ✅ Connected");
+    await ensureSeeded(prisma);
     initScheduler(io);
   } catch (e) {
     console.error("   Database    : ❌", e.message);

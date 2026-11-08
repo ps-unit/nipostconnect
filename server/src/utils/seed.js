@@ -1,9 +1,14 @@
 // src/utils/seed.js — Database Seed Script
-require("dotenv").config({ path: "../../.env" });
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+require("dotenv").config({ path: path.join(__dirname, "../../../.env") });
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const { startDbProxy } = require("./dbProxy");
 
-const prisma = new PrismaClient();
+const defaultPrisma = new PrismaClient();
 
 const STATES = [
   { name: "FCT Abuja",    slug: "fct-abuja",    code: "FCT" },
@@ -58,7 +63,7 @@ const DEPARTMENTS = [
   { name: "Executive Office",        slug: "executive-office",      description: "PMG office and executive support" },
 ];
 
-async function main() {
+async function seedDatabase(prisma = defaultPrisma) {
   console.log("🌱 Seeding NiPOST Connect database...\n");
 
   // ── States ─────────────────────────────────────────────────────────────────
@@ -248,10 +253,46 @@ async function main() {
   console.log(`   Super Admin password : ${process.env.SEED_ADMIN_PASSWORD || "NiPOST@Admin2026"}`);
   console.log(`   States seeded        : ${STATES.length}`);
   console.log(`   Departments seeded   : ${DEPARTMENTS.length}`);
-  console.log(`   Channels created     : ${allChannels.length + 4}`);
+  console.log(`   Channels created     : ${allChannels.length}`);
   console.log("─────────────────────────────────────\n");
 }
 
-main()
-  .catch(e => { console.error("❌ Seed failed:", e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+let seedPromise = null;
+async function ensureSeeded(prisma = defaultPrisma) {
+  if (seedPromise) return seedPromise;
+  seedPromise = (async () => {
+    try {
+      const [stateCount, deptCount] = await Promise.all([
+        prisma.state.count(),
+        prisma.department.count(),
+      ]);
+      if (stateCount < STATES.length || deptCount < DEPARTMENTS.length) {
+        await seedDatabase(prisma);
+      }
+    } catch (err) {
+      console.error("[AutoSeed] Error checking/seeding database:", err.message);
+    } finally {
+      seedPromise = null;
+    }
+  })();
+  return seedPromise;
+}
+
+if (require.main === module) {
+  (async () => {
+    try {
+      if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("127.0.0.1:5433")) {
+        await startDbProxy();
+      }
+      await seedDatabase(defaultPrisma);
+    } catch (e) {
+      console.error("❌ Seed failed:", e);
+      process.exit(1);
+    } finally {
+      await defaultPrisma.$disconnect();
+      process.exit(0);
+    }
+  })();
+}
+
+module.exports = { seedDatabase, ensureSeeded, STATES, DEPARTMENTS };

@@ -6,6 +6,7 @@ const { body, validationResult } = require("express-validator");
 const { PrismaClient } = require("@prisma/client");
 const { authenticate } = require("../middleware/auth");
 const { verifyToken, verifyBackupCode } = require("../utils/twofa");
+const { ensureSeeded } = require("../utils/seed");
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
@@ -79,10 +80,14 @@ router.post("/login", [
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
     const { email, password, totpToken, backupCode } = req.body;
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email },
       include: { state: true, department: true, twoFA: true },
     });
+    if (!user) {
+      await ensureSeeded(prisma);
+      user = await prisma.user.findUnique({ where: { email }, include: { state: true, department: true, twoFA: true } });
+    }
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
     const validPw = await bcrypt.compare(password, user.passwordHash);
@@ -118,7 +123,7 @@ router.post("/refresh", async (req, res, next) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(401).json({ error: "Refresh token required" });
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    let user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user || user.refreshToken !== refreshToken) return res.status(401).json({ error: "Invalid refresh token" });
     const tokens = generateTokens(user.id, user.role);
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken: tokens.refreshToken } });
@@ -140,7 +145,7 @@ router.post("/logout", authenticate, async (req, res, next) => {
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get("/me", authenticate, async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: { state: true, department: true, twoFA: { select: { isEnabled: true } } },
     });
@@ -156,7 +161,7 @@ router.post("/change-password", authenticate, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    let user = await prisma.user.findUnique({ where: { id: req.user.id } });
     const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
     if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
     const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
