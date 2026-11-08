@@ -66,7 +66,7 @@ export default function DMSidebar({ activeDMUserId, onSelectDM, isMobile }) {
           const online = isOnline(c.partner.id);
           return (
             <button key={c.partner.id} onClick={() => onSelectDM(c.partner.id)}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px", borderRadius: 8, border: "none", background: active ? "rgba(212,168,67,0.1)" : "transparent", cursor: "pointer", marginBottom: 2, textAlign: "left" }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px", borderRadius: 8, border: "none", background: active ? colors.goldDim : "transparent", cursor: "pointer", marginBottom: 2, textAlign: "left" }}
               onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
               <div style={{ position: "relative" }}>

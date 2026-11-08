@@ -131,7 +131,7 @@ function RequestsTab() {
         {["PENDING","APPROVED","REJECTED"].map(f=>(
           <button key={f} onClick={()=>setFilter(f)}
             style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${filter===f?colors.gold:colors.border}`,
-              background:filter===f?"rgba(212,168,67,0.1)":"transparent",color:filter===f?colors.gold:colors.muted,cursor:"pointer",fontSize:12,fontWeight:600 }}>
+              background:filter===f?colors.goldDim:"transparent",color:filter===f?colors.gold:colors.muted,cursor:"pointer",fontSize:12,fontWeight:600 }}>
             {f}
           </button>
         ))}

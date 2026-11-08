@@ -6,8 +6,8 @@ export const colors = {
   surfaceAlt: "#0D2244",
   border:     "#1E3A5F",
   borderDim:  "#0D2244",
-  gold:       "#D4A843",
-  goldDim:    "rgba(212,168,67,0.15)",
+  gold:       "var(--accent-color, #D4A843)",
+  goldDim:    "var(--accent-dim, rgba(212,168,67,0.15))",
   text:       "#E8EDF5",
   textMid:    "#B0BDD0",
   muted:      "#6B8299",
@@ -135,10 +135,10 @@ export const s = {
   },
   infoBanner: {
     background: colors.goldDim,
-    border: `1px solid rgba(212,168,67,0.2)`,
+    border: `1px solid rgba(var(--accent-rgb, 212, 168, 67), 0.25)`,
     borderRadius: 8,
     padding: "10px 14px",
-    color: "#E8C96B",
+    color: "var(--accent-color, #E8C96B)",
     fontSize: 13,
     marginBottom: 16,
   },
@@ -179,7 +179,7 @@ export const s = {
 
 // Role badge colours
 export const ROLE_BADGE = {
-  SUPER_ADMIN: { bg: "#D4A843", color: "#0A1F44", label: "Super Admin" },
+  SUPER_ADMIN: { bg: "var(--accent-color, #D4A843)", color: "#0A1F44", label: "Super Admin" },
   STATE_ADMIN:  { bg: "#2563EB", color: "#fff",    label: "State Admin" },
   DEPT_ADMIN:   { bg: "#7C3AED", color: "#fff",    label: "Dept Admin"  },
   STAFF:        null,
@@ -187,7 +187,7 @@ export const ROLE_BADGE = {
 
 // Message type styling
 export const MSG_TYPE_META = {
-  ANNOUNCEMENT: { bar: "#D4A843", label: "ANNOUNCEMENT", icon: "📢" },
+  ANNOUNCEMENT: { bar: "var(--accent-color, #D4A843)", label: "ANNOUNCEMENT", icon: "📢" },
   MEMO:         { bar: "#7C3AED", label: "OFFICIAL MEMO", icon: "📄" },
   SUGGESTION:   { bar: "#22C55E", label: "SUGGESTION",    icon: "💡" },
   POLL:         { bar: "#2563EB", label: "POLL",           icon: "🗳️" },
@@ -213,4 +213,70 @@ export function resolveUploadUrl(url) {
   const idx = url.indexOf("/uploads/");
   if (idx !== -1) return url.slice(idx);
   return url;
+}
+
+const ORG_CACHE_KEY = "nipost_org_settings";
+
+export function getCachedOrgSettings() {
+  try {
+    const raw = localStorage.getItem(ORG_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function hexToRgbString(hex) {
+  if (!hex || typeof hex !== "string") return "212, 168, 67";
+  const clean = hex.trim().replace("#", "");
+  if (!/^[0-9A-Fa-f]{6}$/.test(clean)) return "212, 168, 67";
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+export function applyOrgBranding(settings, { persist = true } = {}) {
+  if (!settings || typeof document === "undefined") return;
+  if (persist) {
+    try {
+      localStorage.setItem(ORG_CACHE_KEY, JSON.stringify(settings));
+    } catch {}
+  }
+  const accent = settings.accentColor && /^#[0-9A-Fa-f]{6}$/.test(settings.accentColor.trim())
+    ? settings.accentColor.trim()
+    : "#D4A843";
+  const rgb = hexToRgbString(accent);
+  const root = document.documentElement;
+  root.style.setProperty("--accent-color", accent);
+  root.style.setProperty("--accent-rgb", rgb);
+  root.style.setProperty("--accent-dim", `rgba(${rgb}, 0.15)`);
+  root.style.setProperty("--accent-subtle", `rgba(${rgb}, 0.08)`);
+  root.style.setProperty("--accent-border", `rgba(${rgb}, 0.25)`);
+
+  const themeMeta = document.querySelector("meta[name='theme-color']");
+  if (themeMeta) themeMeta.setAttribute("content", accent);
+
+  if (settings.name) {
+    document.title = settings.name;
+  }
+  const logoSrc = resolveUploadUrl(settings.logoUrl);
+  if (logoSrc) {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = logoSrc;
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("org:branding", { detail: settings }));
+  }
+}
+
+// Immediately apply any cached branding on initial script evaluation
+if (typeof window !== "undefined") {
+  const cached = getCachedOrgSettings();
+  if (cached) applyOrgBranding(cached, { persist: false });
 }

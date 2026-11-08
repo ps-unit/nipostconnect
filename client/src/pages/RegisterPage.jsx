@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api, { usersAPI } from "../services/api";
-import { s, colors, resolveUploadUrl } from "../components/shared/styles";
+import { s, colors, resolveUploadUrl, getCachedOrgSettings, applyOrgBranding } from "../components/shared/styles";
 
 function getInitials(name = "") {
   return name.trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "📷";
@@ -20,6 +20,8 @@ export default function RegisterPage() {
   const [loading, setLoading]         = useState(false);
   const [avatarFile, setAvatarFile]   = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [orgSettings, setOrgSettings] = useState(() => getCachedOrgSettings());
+  const [logoErr, setLogoErr]         = useState(false);
   const [form, setForm] = useState({
     name: "", staffId: "", email: "", password: "", confirmPassword: "",
     phone: "", stateId: "", departmentId: "", postOffice: "",
@@ -29,7 +31,18 @@ export default function RegisterPage() {
     usersAPI.setupOptions()
       .then(r => setOptions(r.data))
       .catch(() => {});
+    api.get("/organization")
+      .then(r => {
+        if (r.data?.settings) {
+          setOrgSettings(r.data.settings);
+          applyOrgBranding(r.data.settings);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
+  const orgName    = orgSettings?.name || "NiPOST Connect";
 
   const f = (field) => ({ value: form[field], onChange: (e) => setForm({ ...form, [field]: e.target.value }) });
 
@@ -107,8 +120,17 @@ export default function RegisterPage() {
     <div style={{ ...s.authPage, overflowY: "auto" }}>
       <div style={{ ...s.authCard, maxWidth: 520, margin: "auto" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 38, marginBottom: 6 }}>📮</div>
-          <h1 style={{ color: colors.gold, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Staff Registration</h1>
+          {orgLogoSrc && !logoErr ? (
+            <img
+              src={orgLogoSrc}
+              alt={orgName}
+              onError={() => setLogoErr(true)}
+              style={{ width: 52, height: 52, objectFit: "contain", margin: "0 auto 8px", display: "block" }}
+            />
+          ) : (
+            <div style={{ fontSize: 38, marginBottom: 6 }}>📮</div>
+          )}
+          <h1 style={{ color: orgSettings?.accentColor || colors.gold, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Staff Registration</h1>
           <p style={{ color: colors.muted, fontSize: 12 }}>Step {step + 1} of {steps.length} — {steps[step]}</p>
         </div>
 

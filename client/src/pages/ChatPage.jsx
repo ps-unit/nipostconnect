@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import { useAuth } from "../contexts/AuthContext";
-import { channelsAPI } from "../services/api";
+import api, { channelsAPI } from "../services/api";
 import { useResponsive } from "../hooks/useResponsive";
 
 import NavRail from "../components/layout/NavRail";
@@ -28,7 +28,7 @@ import AIMemoModal from "../components/modals/AIMemoModal";
 import TwoFASetupModal from "../components/modals/TwoFASetupModal";
 import OrgSettingsModal from "../components/modals/OrgSettingsModal";
 
-import { colors, resolveUploadUrl } from "../components/shared/styles";
+import { colors, resolveUploadUrl, getCachedOrgSettings, applyOrgBranding } from "../components/shared/styles";
 
 export default function ChatPage() {
   const { user, updateUser } = useAuth();
@@ -41,6 +41,7 @@ export default function ChatPage() {
   const [activeDMUserId, setActiveDMUserId]       = useState(null);
   const [showMembers, setShowMembers]             = useState(false);
   const [unreadMap, setUnreadMap]                 = useState({});
+  const [orgSettings, setOrgSettings]             = useState(() => getCachedOrgSettings());
 
   // Mobile navigation pane state: "sidebar" or "chat"
   const [mobilePane, setMobilePane]               = useState("sidebar");
@@ -76,6 +77,11 @@ export default function ChatPage() {
   }, [activeChannelId, joinChannel]);
 
   useEffect(() => { loadChannels(); }, []);
+  useEffect(() => {
+    api.get("/organization")
+      .then(r => setOrgSettings(r.data.settings))
+      .catch(() => {});
+  }, []);
   useEffect(() => on("channel:created", ch => setChannels(p => [...p, { ...ch, isMember: false }])), [on]);
   useEffect(() => on("message:new", msg => {
     if (msg.channelId !== activeChannelId && msg.author?.id !== user.id)
@@ -86,6 +92,15 @@ export default function ChatPage() {
       updateUser({ avatarUrl: resolveUploadUrl(avatarUrl) });
     }
   }), [on, user.id, updateUser]);
+  useEffect(() => on("org:settings:updated", updated => {
+    setOrgSettings(updated);
+  }), [on]);
+
+  // Sync browser document title, favicon, and CSS accent color variables with organization settings
+  useEffect(() => {
+    if (!orgSettings) return;
+    applyOrgBranding(orgSettings);
+  }, [orgSettings]);
 
   const selectChannel = (channelId) => {
     setActiveChannelId(channelId);
@@ -140,6 +155,7 @@ export default function ChatPage() {
         {!isMobile && (
           <NavRail
             isMobile={false}
+            orgSettings={orgSettings}
             activeView={activeView}
             setActiveView={handleNavChange}
             onAdminClick={() => setShowAdmin(true)}
@@ -161,12 +177,14 @@ export default function ChatPage() {
             {activeView === "dms" ? (
               <DMSidebar
                 isMobile={isMobile}
+                orgSettings={orgSettings}
                 activeDMUserId={activeDMUserId}
                 onSelectDM={(id) => { setActiveDMUserId(id); setMobilePane("chat"); }}
               />
             ) : activeView === "channels" ? (
               <ChannelSidebar
                 isMobile={isMobile}
+                orgSettings={orgSettings}
                 channels={channels}
                 activeChannelId={activeChannelId}
                 onSelectChannel={selectChannel}
@@ -202,6 +220,7 @@ export default function ChatPage() {
           <ChatMain
             channel={activeView === "channels" ? activeChannel : null}
             dmUserId={activeView === "dms" ? activeDMUserId : null}
+            orgSettings={orgSettings}
             onToggleMembers={() => setShowMembers(s => !s)}
             showMembers={showMembers}
             onOpenThread={setThreadMessage}
@@ -247,6 +266,7 @@ export default function ChatPage() {
       {isMobile && (
         <NavRail
           isMobile={true}
+          orgSettings={orgSettings}
           activeView={activeView}
           setActiveView={handleNavChange}
           onAdminClick={() => setShowAdmin(true)}
@@ -272,7 +292,7 @@ export default function ChatPage() {
       {showAIMemo     && <AIMemoModal onClose={() => setShowAIMemo(false)} defaultChannelId={activeChannelId} />}
       {show2FA        && <TwoFASetupModal onClose={() => setShow2FA(false)} mode={twoFAMode} />}
       {showSettings   && <SettingsPage onClose={() => setShowSettings(false)} />}
-      {showOrgSettings&& <OrgSettingsModal onClose={() => setShowOrgSettings(false)} />}
+      {showOrgSettings&& <OrgSettingsModal onClose={() => setShowOrgSettings(false)} onUpdated={setOrgSettings} />}
     </div>
   );
 }

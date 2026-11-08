@@ -165,7 +165,7 @@ export default function MessageBubble({ msg, currentUserId, isAdmin, onVote, onR
           <div style={{ display:"flex", gap:5, marginTop:8, flexWrap:"wrap" }}>
             {Object.entries(rxGroups).map(([emoji, data]) => (
               <button key={emoji} onClick={()=>onReact(msg.id,emoji)} title={data.users.join(", ")}
-                style={{ background:data.mine?"rgba(212,168,67,0.15)":"rgba(255,255,255,0.07)",
+                style={{ background:data.mine?colors.goldDim:"rgba(255,255,255,0.07)",
                   border:`1px solid ${data.mine?colors.gold:"rgba(255,255,255,0.1)"}`,
                   borderRadius:12, padding:"3px 9px", cursor:"pointer", minHeight:"auto",
                   color:colors.textMid, fontSize:13, display:"flex", alignItems:"center", gap:4 }}>

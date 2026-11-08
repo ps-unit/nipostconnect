@@ -5,7 +5,7 @@ import { useVoice } from "../../hooks/useVoice";
 import { useAuth } from "../../contexts/AuthContext";
 
 const C = {
-  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"#D4A843",
+  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)",
   text:"#E8EDF5", muted:"#6B8299", ghost:"#2E4A6B",
   online:"#22C55E", danger:"#EF4444",
 };

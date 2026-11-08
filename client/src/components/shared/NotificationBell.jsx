@@ -57,7 +57,7 @@ export default function NotificationBell({ onNavigate, isMobile = false }) {
       <button onClick={()=>setOpen(o=>!o)} title="Notifications"
         style={{ width:44,height:44,borderRadius:12,border:"none",cursor:"pointer",fontSize:20,
           display:"flex",alignItems:"center",justifyContent:"center",position:"relative",
-          background:open?"rgba(212,168,67,0.15)":"transparent" }}
+          background:open?colors.goldDim:"transparent" }}
         onMouseEnter={e=>{ if(!open) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
         onMouseLeave={e=>{ if(!open) e.currentTarget.style.background="transparent"; }}>
         🔔

@@ -25,11 +25,11 @@ const logoStorage = multer.diskStorage({
 });
 const logoUpload = multer({
   storage: logoStorage,
-  limits: { fileSize: 2 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (["image/png","image/jpeg","image/svg+xml","image/webp"].includes(file.mimetype))
+    if (["image/png","image/jpeg","image/jpg","image/svg+xml","image/webp","image/gif"].includes(file.mimetype))
       cb(null, true);
-    else cb(new Error("Only PNG, JPG, SVG or WEBP images allowed"), false);
+    else cb(new Error("Only PNG, JPG, SVG, WEBP or GIF images allowed"), false);
   },
 });
 
@@ -40,8 +40,8 @@ async function getOrCreate() {
   return prisma.organizationSettings.create({ data: {} });
 }
 
-// ── GET /api/organization — public (all authenticated staff can read) ─────────
-router.get("/", authenticate, async (req, res, next) => {
+// ── GET /api/organization — public (login, register & authenticated staff) ────
+router.get("/", async (req, res, next) => {
   try {
     const settings = await getOrCreate();
     res.json({ settings });
@@ -50,25 +50,26 @@ router.get("/", authenticate, async (req, res, next) => {
 
 // ── PATCH /api/organization — update settings (Super Admin only) ──────────────
 router.patch("/", authenticate, isSuperAdmin, [
-  body("name").optional().trim().isLength({ min: 2, max: 100 }),
-  body("slogan").optional().trim().isLength({ max: 200 }),
-  body("accentColor").optional().trim().matches(/^#[0-9A-Fa-f]{6}$/),
-  body("contactEmail").optional().isEmail(),
-  body("contactPhone").optional().trim(),
-  body("address").optional().trim().isLength({ max: 300 }),
-  body("website").optional().trim().isURL(),
-  body("welcomeMessage").optional().trim().isLength({ max: 1000 }),
-  body("maxFileSize").optional().isInt({ min: 1, max: 100 }),
+  body("name").optional({ values: "falsy" }).trim().isLength({ min: 2, max: 100 }),
+  body("slogan").optional({ values: "falsy" }).trim().isLength({ max: 200 }),
+  body("accentColor").optional({ values: "falsy" }).trim().matches(/^#[0-9A-Fa-f]{6}$/),
+  body("contactEmail").optional({ values: "falsy" }).isEmail(),
+  body("contactPhone").optional({ values: "falsy" }).trim(),
+  body("address").optional({ values: "falsy" }).trim().isLength({ max: 300 }),
+  body("website").optional({ values: "falsy" }).trim(),
+  body("welcomeMessage").optional({ values: "falsy" }).trim().isLength({ max: 1000 }),
+  body("maxFileSize").optional({ values: "falsy" }).isInt({ min: 1, max: 100 }),
+  body("allowedDomain").optional({ values: "falsy" }).trim(),
   body("maintenanceMode").optional().isBoolean(),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array(), error: errors.array()[0]?.msg || "Validation failed" });
 
     const settings = await getOrCreate();
     const {
       name, slogan, accentColor, contactEmail, contactPhone,
-      address, website, welcomeMessage, maxFileSize, maintenanceMode,
+      address, website, welcomeMessage, maxFileSize, allowedDomain, maintenanceMode,
     } = req.body;
 
     const updated = await prisma.organizationSettings.update({
@@ -82,7 +83,8 @@ router.patch("/", authenticate, isSuperAdmin, [
         ...(address          !== undefined && { address }),
         ...(website          !== undefined && { website }),
         ...(welcomeMessage   !== undefined && { welcomeMessage }),
-        ...(maxFileSize      !== undefined && { maxFileSize: parseInt(maxFileSize) }),
+        ...(maxFileSize      !== undefined && !Number.isNaN(parseInt(maxFileSize)) && { maxFileSize: parseInt(maxFileSize) }),
+        ...(allowedDomain    !== undefined && { allowedDomain }),
         ...(maintenanceMode  !== undefined && { maintenanceMode: !!maintenanceMode }),
         updatedById: req.user.id,
       },
@@ -102,7 +104,12 @@ router.patch("/", authenticate, isSuperAdmin, [
 
 // ── POST /api/organization/logo — upload logo (Super Admin only) ──────────────
 router.post("/logo", authenticate, isSuperAdmin,
-  logoUpload.single("logo"),
+  (req, res, next) => {
+    logoUpload.single("logo")(req, res, (err) => {
+      if (err) return res.status(400).json({ error: err.message || "Logo upload failed" });
+      next();
+    });
+  },
   async (req, res, next) => {
     try {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });

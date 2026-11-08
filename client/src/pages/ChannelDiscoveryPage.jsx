@@ -5,7 +5,7 @@ import { channelsAPI } from "../services/api";
 
 const C = {
   bg:"#081832", surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
+  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
   online:"#22C55E",
 };
 

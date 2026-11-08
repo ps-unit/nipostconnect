@@ -1,5 +1,5 @@
-// client/src/components/layout/NavRail.jsx — Responsive version (+ avatarUrl + Search)
-import { useState } from "react";
+// client/src/components/layout/NavRail.jsx — Responsive version (+ avatarUrl + Search + Org Logo)
+import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import NotificationBell from "../shared/NotificationBell";
@@ -60,6 +60,7 @@ function UserAvatarCircle({ user, size = 36, highlight = false }) {
 
 export default function NavRail({
   isMobile,
+  orgSettings,
   activeView, setActiveView,
   onAdminClick, onAnalyticsClick, onReportsClick,
   onScheduleClick, onBulkMemoClick, onHRMISClick,
@@ -69,6 +70,14 @@ export default function NavRail({
   const { connected } = useSocket();
   const [showMenu, setShowMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [logoErr, setLogoErr] = useState(false);
+
+  const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
+  const orgName = orgSettings?.name || "NiPOST Connect";
+
+  useEffect(() => {
+    setLogoErr(false);
+  }, [orgLogoSrc]);
 
   const handleNavigation = (url) => {
     if (url.startsWith("/channel/")) setActiveView("channels");
@@ -286,12 +295,27 @@ export default function NavRail({
       position: "relative",
       zIndex: 100,
     }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 14, background: colors.gold,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 22, marginBottom: 8,
-      }} title="NiPOST Connect">
-        📮
+      <div
+        onClick={() => setActiveView("channels")}
+        style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: orgLogoSrc && !logoErr ? "#0D2244" : (orgSettings?.accentColor || colors.gold),
+          border: orgLogoSrc && !logoErr ? `1px solid ${colors.border}` : "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 22, marginBottom: 8, overflow: "hidden", cursor: "pointer", padding: 3, boxSizing: "border-box",
+        }}
+        title={orgName}
+      >
+        {orgLogoSrc && !logoErr ? (
+          <img
+            src={orgLogoSrc}
+            alt={orgName}
+            onError={() => setLogoErr(true)}
+            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+          />
+        ) : (
+          "📮"
+        )}
       </div>
       <div style={{ width: 32, height: 1, background: colors.border, margin: "4px 0" }} />
 
@@ -386,7 +410,7 @@ function NavBtn({ icon, label, active, onClick }) {
       style={{
         width: 44, height: 44, borderRadius: 12, border: "none", cursor: "pointer",
         fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center",
-        background: active ? "rgba(212,168,67,0.15)" : "transparent",
+        background: active ? colors.goldDim : "transparent",
         outline: active ? `2px solid ${colors.gold}` : "none", transition: "background 0.15s",
       }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}

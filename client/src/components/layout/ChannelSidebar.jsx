@@ -1,8 +1,8 @@
 // src/components/layout/ChannelSidebar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { channelsAPI } from "../../services/api";
-import { colors, CHANNEL_ICONS } from "../shared/styles";
+import { colors, CHANNEL_ICONS, resolveUploadUrl } from "../shared/styles";
 import CreateChannelModal from "../modals/CreateChannelModal";
 
 const SECTION_ORDER = ["ANNOUNCEMENT","EMERGENCY","SUGGESTION","GENERAL","STATE","POST_OFFICE","DEPARTMENT"];
@@ -16,12 +16,21 @@ const SECTION_LABELS = {
   DEPARTMENT:   { label: "DEPARTMENTS",   icon: "🏢" },
 };
 
-export default function ChannelSidebar({ channels, activeChannelId, onSelectChannel, unreadMap, onChannelCreated, searchMode, isMobile }) {
+export default function ChannelSidebar({ channels, activeChannelId, onSelectChannel, unreadMap, onChannelCreated, searchMode, isMobile, orgSettings }) {
   const { isAdmin, user } = useAuth();
   const [search, setSearch]     = useState("");
   const [expanded, setExpanded] = useState({ ANNOUNCEMENT: true, EMERGENCY: true, SUGGESTION: true, GENERAL: true, STATE: true, DEPARTMENT: true, POST_OFFICE: false });
   const [showCreate, setShowCreate] = useState(false);
   const [joining, setJoining]   = useState(null);
+  const [logoErr, setLogoErr]   = useState(false);
+
+  const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
+  const orgName    = orgSettings?.name || "NiPOST Connect";
+  const orgSlogan  = orgSettings?.slogan || "Nigerian Postal Service";
+
+  useEffect(() => {
+    setLogoErr(false);
+  }, [orgLogoSrc]);
 
   const toggle = (key) => setExpanded(e => ({ ...e, [key]: !e[key] }));
 
@@ -82,7 +91,7 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
               onClick={() => isMember ? onSelectChannel(ch.id) : handleJoinRequest(ch)}
               disabled={joining === ch.id}
               style={{
-                width: "100%", background: active ? "rgba(212,168,67,0.1)" : "transparent",
+                width: "100%", background: active ? colors.goldDim : "transparent",
                 border: "none", display: "flex", alignItems: "center",
                 gap: 8, padding: isMobile ? "9px 14px 9px 20px" : "6px 12px 6px 22px",
                 cursor: "pointer", textAlign: "left", borderRadius: 0,
@@ -90,7 +99,7 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
                 opacity: joining === ch.id ? 0.5 : 1,
               }}
               onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.background = active ? "rgba(212,168,67,0.1)" : "transparent"; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.background = active ? colors.goldDim : "transparent"; }}
             >
               <span style={{ fontSize: 13 }}>{CHANNEL_ICONS[ch.type] || "#"}</span>
               <span style={{
@@ -124,9 +133,39 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
       height: "100%",
     }}>
       {/* Header */}
-      <div style={{ padding: "14px 12px 10px", borderBottom: `1px solid ${colors.borderDim}` }}>
-        <div style={{ color: colors.text, fontWeight: 700, fontSize: 15 }}>NiPOST Connect</div>
-        <div style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>Nigerian Postal Service</div>
+      <div style={{
+        padding: "12px 12px 10px",
+        borderBottom: `1px solid ${colors.borderDim}`,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}>
+        {orgLogoSrc && !logoErr && (
+          <img
+            src={orgLogoSrc}
+            alt={orgName}
+            onError={() => setLogoErr(true)}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              objectFit: "contain",
+              background: "#081832",
+              border: `1px solid ${colors.borderDim}`,
+              padding: 2,
+              flexShrink: 0,
+              boxSizing: "border-box",
+            }}
+          />
+        )}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ color: colors.text, fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {orgName}
+          </div>
+          <div style={{ color: colors.muted, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {orgSlogan}
+          </div>
+        </div>
       </div>
 
       {/* Search */}
@@ -167,8 +206,8 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
           <button onClick={() => setShowCreate(true)}
             style={{
               width: "100%", padding: "8px", borderRadius: 8,
-              border: `1px dashed rgba(212,168,67,0.3)`,
-              background: "rgba(212,168,67,0.04)", color: colors.gold,
+              border: `1px dashed var(--accent-border, rgba(212,168,67,0.3))`,
+              background: "var(--accent-subtle, rgba(212,168,67,0.04))", color: colors.gold,
               cursor: "pointer", fontSize: 12, fontWeight: 600,
               fontFamily: "'DM Sans', sans-serif",
             }}>

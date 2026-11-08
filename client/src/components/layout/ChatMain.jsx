@@ -12,6 +12,7 @@ import { colors, CHANNEL_ICONS, resolveUploadUrl } from "../shared/styles";
 export default function ChatMain({
   channel,
   dmUserId,
+  orgSettings,
   onToggleMembers,
   showMembers,
   onOpenThread,
@@ -24,6 +25,14 @@ export default function ChatMain({
 }) {
   const { user, isAdmin }               = useAuth();
   const { on, startTyping, stopTyping } = useSocket();
+  const [logoErr, setLogoErr]           = useState(false);
+
+  const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
+  const orgName    = orgSettings?.name || "NiPOST Connect";
+
+  useEffect(() => {
+    setLogoErr(false);
+  }, [orgLogoSrc]);
 
   const [messages, setMessages]             = useState([]);
   const [dmPartner, setDmPartner]           = useState(null);
@@ -252,8 +261,17 @@ export default function ChatMain({
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         background: colors.bg, flexDirection: "column", gap: 12, padding: 20, textAlign: "center" }}>
-        <div style={{ fontSize: 56 }}>📮</div>
-        <div style={{ color: colors.gold, fontWeight: 700, fontSize: 18 }}>NiPOST Connect</div>
+        {orgLogoSrc && !logoErr ? (
+          <img
+            src={orgLogoSrc}
+            alt={orgName}
+            onError={() => setLogoErr(true)}
+            style={{ width: 72, height: 72, objectFit: "contain", display: "block" }}
+          />
+        ) : (
+          <div style={{ fontSize: 56 }}>📮</div>
+        )}
+        <div style={{ color: colors.gold, fontWeight: 700, fontSize: 18 }}>{orgName}</div>
         <div style={{ color: colors.muted, fontSize: 14 }}>
           {activeView === "dms" ? "Select a conversation from Direct Messages or Staff Directory" : "Select a channel to start"}
         </div>
@@ -519,10 +537,10 @@ function IconBtn({ icon, label, action, active }) {
     <button onClick={action} title={label}
       style={{ padding: "6px 10px", borderRadius: 8,
         border: `1px solid ${active ? colors.gold : colors.border}`,
-        background: active ? "rgba(212,168,67,0.1)" : "transparent",
+        background: active ? colors.goldDim : "transparent",
         color: active ? colors.gold : colors.muted, cursor: "pointer", fontSize: 15 }}
-      onMouseEnter={e => { e.currentTarget.style.color = colors.gold; e.currentTarget.style.background = "rgba(212,168,67,0.08)"; }}
-      onMouseLeave={e => { e.currentTarget.style.color = active ? colors.gold : colors.muted; e.currentTarget.style.background = active ? "rgba(212,168,67,0.1)" : "transparent"; }}>
+      onMouseEnter={e => { e.currentTarget.style.color = colors.gold; e.currentTarget.style.background = "var(--accent-subtle, rgba(212,168,67,0.08))"; }}
+      onMouseLeave={e => { e.currentTarget.style.color = active ? colors.gold : colors.muted; e.currentTarget.style.background = active ? colors.goldDim : "transparent"; }}>
       {icon}
     </button>
   );

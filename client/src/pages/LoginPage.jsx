@@ -1,12 +1,13 @@
-
-// client/src/pages/LoginPage.jsx — v6 (adds forgot password link + 2FA step)
-import { useState } from "react";
+// client/src/pages/LoginPage.jsx — v6 (adds forgot password link + 2FA step + Org Logo)
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import { resolveUploadUrl, getCachedOrgSettings, applyOrgBranding } from "../components/shared/styles";
 
 const C = {
   bg:"#081832", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299",
+  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299",
 };
 const inp = { width:"100%", padding:"10px 12px", borderRadius:8,
   border:`1px solid ${C.border}`, background:"#081832", color:C.text,
@@ -25,6 +26,23 @@ export default function LoginPage() {
   const [useBackup, setUseBackup] = useState(false);
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [orgSettings, setOrgSettings] = useState(() => getCachedOrgSettings());
+  const [logoErr, setLogoErr] = useState(false);
+
+  useEffect(() => {
+    api.get("/organization")
+      .then(r => {
+        if (r.data?.settings) {
+          setOrgSettings(r.data.settings);
+          applyOrgBranding(r.data.settings);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
+  const orgName    = orgSettings?.name || "NiPOST Connect";
+  const orgSlogan  = orgSettings?.slogan || "Nigerian Postal Service · Internal Platform";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -62,12 +80,21 @@ export default function LoginPage() {
         border:`1px solid ${C.border}`, borderRadius:16, padding:32 }}>
 
         <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:48, marginBottom:10 }}>📮</div>
-          <h1 style={{ color:C.gold, fontSize:22, fontWeight:700, margin:"0 0 4px" }}>
-            NiPOST Connect
+          {orgLogoSrc && !logoErr ? (
+            <img
+              src={orgLogoSrc}
+              alt={orgName}
+              onError={() => setLogoErr(true)}
+              style={{ width: 64, height: 64, objectFit: "contain", margin: "0 auto 10px", display: "block" }}
+            />
+          ) : (
+            <div style={{ fontSize:48, marginBottom:10 }}>📮</div>
+          )}
+          <h1 style={{ color:orgSettings?.accentColor || C.gold, fontSize:22, fontWeight:700, margin:"0 0 4px" }}>
+            {orgName}
           </h1>
           <p style={{ color:C.muted, fontSize:13, margin:0 }}>
-            Nigerian Postal Service · Internal Platform
+            {orgSlogan}
           </p>
         </div>
 

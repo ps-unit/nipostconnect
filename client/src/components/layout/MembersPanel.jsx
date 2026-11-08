@@ -106,7 +106,7 @@ export default function MembersPanel({ channelId, onClose, isMobile }) {
                   <div style={{ color: online ? colors.textMid : colors.ghost, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.user.name}</div>
                   <div style={{ color: colors.ghost, fontSize: 10 }}>{m.user.department?.name || m.user.state?.name || ""}</div>
                 </div>
-                {m.isAdmin && <span style={{ fontSize: 9, background: "rgba(212,168,67,0.15)", color: colors.gold, borderRadius: 4, padding: "1px 4px", marginLeft: "auto", flexShrink: 0 }}>MOD</span>}
+                {m.isAdmin && <span style={{ fontSize: 9, background: colors.goldDim, color: colors.gold, borderRadius: 4, padding: "1px 4px", marginLeft: "auto", flexShrink: 0 }}>MOD</span>}
               </div>
             );
           })}

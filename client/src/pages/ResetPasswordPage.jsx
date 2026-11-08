@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import api from "../services/api";
 
-const C = { bg:"#081832", surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299" };
+const C = { bg:"#081832", surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299" };
 const inp = { width:"100%", padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border}`,
   background:"#081832", color:C.text, fontSize:14, marginBottom:14,
   boxSizing:"border-box", fontFamily:"'DM Sans',sans-serif", outline:"none" };

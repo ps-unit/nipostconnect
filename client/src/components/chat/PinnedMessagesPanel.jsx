@@ -6,7 +6,7 @@ import { format } from "date-fns";
 
 const C = {
   surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
+  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 const MSG_TYPE_BAR = {
   ANNOUNCEMENT:"#D4A843", MEMO:"#7C3AED", MESSAGE:"#1E3A5F",

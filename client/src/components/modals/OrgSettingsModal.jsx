@@ -3,10 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useResponsive } from "../../hooks/useResponsive";
-import { resolveUploadUrl } from "../shared/styles";
+import { resolveUploadUrl, applyOrgBranding } from "../shared/styles";
 
 const C = {
-  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"#D4A843",
+  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)",
   text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 const inp = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`,
@@ -31,7 +31,7 @@ const ACCENT_PRESETS = [
   { color:"#EC4899", name:"Pink"          },
 ];
 
-export default function OrgSettingsModal({ onClose }) {
+export default function OrgSettingsModal({ onClose, onUpdated }) {
   const { isSuperAdmin } = useAuth();
   const { isMobile } = useResponsive();
   const logoRef = useRef();
@@ -54,39 +54,63 @@ export default function OrgSettingsModal({ onClose }) {
     }).catch(()=>{});
   }, []);
 
-  const set = (key, value) => setForm(f => ({ ...f, [key]: value }));
+  const set = (key, value) => {
+    setForm(f => {
+      const next = { ...f, [key]: value };
+      if (key === "accentColor" && /^#[0-9A-Fa-f]{6}$/.test((value || "").trim())) {
+        applyOrgBranding(next, { persist: false });
+      }
+      return next;
+    });
+  };
+
+  const handleClose = () => {
+    if (settings) applyOrgBranding(settings, { persist: false });
+    onClose?.();
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      let latestLogoUrl = settings?.logoUrl;
       if (logoFile) {
         const fd = new FormData();
         fd.append("logo", logoFile);
         const lr = await api.post("/organization/logo", fd);
+        latestLogoUrl = lr.data.logoUrl;
         setLogoPreview(resolveUploadUrl(lr.data.logoUrl));
         setLogoFile(null);
       }
+      const normalizedAccent = form.accentColor
+        ? (form.accentColor.trim().startsWith("#") ? form.accentColor.trim() : `#${form.accentColor.trim()}`)
+        : "#D4A843";
       const r = await api.patch("/organization", {
         name: form.name, slogan: form.slogan,
-        accentColor: form.accentColor,
+        accentColor: normalizedAccent,
         contactEmail: form.contactEmail,
         contactPhone: form.contactPhone,
         address: form.address,
         website: form.website,
         welcomeMessage: form.welcomeMessage,
         maxFileSize: form.maxFileSize,
+        allowedDomain: form.allowedDomain,
         maintenanceMode: form.maintenanceMode,
       });
-      setSettings(r.data.settings);
+      const merged = { ...r.data.settings, ...(latestLogoUrl !== undefined ? { logoUrl: latestLogoUrl } : {}) };
+      setSettings(merged);
+      setForm(merged);
+      applyOrgBranding(merged, { persist: true });
+      onUpdated?.(merged);
       showMsg("success", "Organisation settings saved");
-    } catch(e) { showMsg("error", e.response?.data?.error || "Save failed"); }
-    finally { setSaving(false); }
+    } catch(e) {
+      showMsg("error", e.response?.data?.error || e.response?.data?.errors?.[0]?.msg || "Save failed");
+    } finally { setSaving(false); }
   };
 
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showMsg("error","Logo must be under 2 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { showMsg("error","Logo must be under 5 MB"); return; }
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
   };
@@ -100,7 +124,10 @@ export default function OrgSettingsModal({ onClose }) {
       const resolved = resolveUploadUrl(r.data.logoUrl);
       setLogoPreview(resolved);
       setLogoFile(null);
-      setSettings(s => ({ ...s, logoUrl: resolved }));
+      const nextSettings = r.data.settings || { ...settings, logoUrl: r.data.logoUrl };
+      setSettings(nextSettings);
+      applyOrgBranding(nextSettings, { persist: true });
+      onUpdated?.(nextSettings);
       showMsg("success", "Logo updated");
     } catch(e) { showMsg("error", e.response?.data?.error || "Upload failed"); }
     finally { setUploading(false); }
@@ -109,9 +136,12 @@ export default function OrgSettingsModal({ onClose }) {
   const handleRemoveLogo = async () => {
     if (!window.confirm("Remove the organisation logo?")) return;
     try {
-      await api.delete("/organization/logo");
+      const r = await api.delete("/organization/logo");
       setLogoPreview(null); setLogoFile(null);
-      setSettings(s => ({ ...s, logoUrl: null }));
+      const nextSettings = r.data?.settings || { ...settings, logoUrl: null };
+      setSettings(nextSettings);
+      applyOrgBranding(nextSettings, { persist: true });
+      onUpdated?.(nextSettings);
       showMsg("success", "Logo removed");
     } catch {}
   };
@@ -141,7 +171,7 @@ export default function OrgSettingsModal({ onClose }) {
               Branding, contact info and platform configuration
             </p>
           </div>
-          <button onClick={onClose}
+          <button onClick={handleClose}
             style={{ background:"none", border:"none", color:C.muted, fontSize:20, cursor:"pointer", padding:"4px 8px" }}>✕</button>
         </div>
 
@@ -209,14 +239,14 @@ export default function OrgSettingsModal({ onClose }) {
                         display:"flex", alignItems:"center", justifyContent:"center",
                         cursor:"pointer", overflow:"hidden", flexShrink:0 }}>
                       {logoPreview
-                        ? <img src={logoPreview} alt="Logo" style={{ width:"100%", height:"100%", objectFit:"contain" }} />
+                        ? <img src={logoPreview} alt="Logo" onError={() => setLogoPreview(null)} style={{ width:"100%", height:"100%", objectFit:"contain", padding:4, boxSizing:"border-box" }} />
                         : <span style={{ fontSize:32, color:C.ghost }}>📮</span>}
                     </div>
                     <div style={{ flex:1, minWidth:180 }}>
                       <div style={{ color:C.textMid, fontSize:13, fontWeight:600, marginBottom:6 }}>
                         {form.name}
                       </div>
-                      <div style={{ color:C.muted, fontSize:12, marginBottom:12 }}>PNG, JPG, SVG or WEBP · max 2 MB<br/>Recommended: 256×256 px or larger</div>
+                      <div style={{ color:C.muted, fontSize:12, marginBottom:12 }}>PNG, JPG, SVG, WEBP or GIF · max 5 MB<br/>Recommended: 256×256 px or larger</div>
                       <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                         <button onClick={()=>logoRef.current?.click()}
                           style={{ padding:"6px 14px", borderRadius:7, border:`1px solid ${C.border}`,
@@ -245,7 +275,7 @@ export default function OrgSettingsModal({ onClose }) {
                       </div>
                     </div>
                   </div>
-                  <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp,image/gif"
                     onChange={handleLogoChange} style={{ display:"none" }} />
                 </div>
 
@@ -275,10 +305,15 @@ export default function OrgSettingsModal({ onClose }) {
                     ))}
                   </div>
                   <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-                    <label style={{ ...lbl, margin:0 }}>Custom hex:</label>
+                    <label style={{ ...lbl, margin:0 }}>Custom colour:</label>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <div style={{ width:28, height:28, borderRadius:6, background:form.accentColor||C.gold,
-                        border:`1px solid ${C.border}`, flexShrink:0 }} />
+                      <input
+                        type="color"
+                        value={/^#[0-9A-Fa-f]{6}$/.test((form.accentColor || "").trim()) ? form.accentColor.trim() : "#D4A843"}
+                        onChange={e=>set("accentColor",e.target.value)}
+                        style={{ width:32, height:32, borderRadius:6, background:"transparent",
+                          border:`1px solid ${C.border}`, cursor:"pointer", padding:0, flexShrink:0 }}
+                      />
                       <input value={form.accentColor||""} onChange={e=>set("accentColor",e.target.value)}
                         placeholder="#D4A843" style={{ ...inp, marginBottom:0, width:110 }} />
                     </div>
@@ -352,7 +387,7 @@ export default function OrgSettingsModal({ onClose }) {
         {/* Footer */}
         <div style={{ padding:"14px clamp(14px, 3vw, 22px)", borderTop:`1px solid ${C.border}`,
           display:"flex", justifyContent:"flex-end", gap:10 }}>
-          <button onClick={onClose}
+          <button onClick={handleClose}
             style={{ padding:"9px 18px", borderRadius:8, border:`1px solid ${C.border}`,
               background:"none", color:C.muted, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             Cancel

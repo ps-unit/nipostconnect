@@ -1,11 +1,13 @@
 
 // client/src/App.jsx — v6+7
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { usePWA } from "./hooks/usePWA";
 import { useNotifications } from "./hooks/useNotifications";
+import api from "./services/api";
+import { applyOrgBranding } from "./components/shared/styles";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";   // Phase 6
@@ -33,6 +35,14 @@ function Shell() {
   const { permission, notificationsSupported, subscribe } = useNotifications();
   const [installDismissed, setInstallDismissed] = useState(false);
   const [notifDismissed,   setNotifDismissed]   = useState(false);
+
+  useEffect(() => {
+    api.get("/organization")
+      .then(r => {
+        if (r.data?.settings) applyOrgBranding(r.data.settings);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>

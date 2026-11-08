@@ -14,7 +14,7 @@ export const reportsAPI2 = {
 
 const C = {
   bg:"#081832", surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"#D4A843", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
+  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 const ROLE_BADGE = { SUPER_ADMIN:{bg:"#D4A843",color:"#0A1F44"}, STATE_ADMIN:{bg:"#2563EB",color:"#fff"}, DEPT_ADMIN:{bg:"#7C3AED",color:"#fff"} };
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { hrmisAPI } from "../../services/api";
 
 const C = {
-  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"#D4A843",
+  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)",
   text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
 };
 const inp = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`,
