@@ -28,7 +28,9 @@ api.interceptors.response.use(res=>res, async (error) => {
     try {
       const rToken=localStorage.getItem("refreshToken");
       if(!rToken) throw new Error("No refresh token");
-      const {data}=await axios.post("/api/auth/refresh",{refreshToken:rToken});
+      const { data } = await axios.post(`${API_URL}/api/auth/refresh`, {
+  refreshToken: rToken,
+});
       localStorage.setItem("accessToken",data.accessToken); localStorage.setItem("refreshToken",data.refreshToken);
       processQueue(null,data.accessToken); orig.headers.Authorization=`Bearer ${data.accessToken}`; return api(orig);
     } catch(err){ processQueue(err,null); localStorage.removeItem("accessToken"); localStorage.removeItem("refreshToken"); window.location.href="/login"; return Promise.reject(err); }
