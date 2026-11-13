@@ -83,7 +83,7 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
 
         {isExpanded && chs.map(ch => {
           const active  = ch.id === activeChannelId;
-          const isMember = ch.isMember;
+          const isMember = ch.isMember || user?.role === "SUPER_ADMIN";
           const unread  = unreadMap[ch.id] || 0;
 
           return (
@@ -176,7 +176,7 @@ export default function ChannelSidebar({ channels, activeChannelId, onSelectChan
           placeholder="Search channels..."
           style={{
             width: "100%", padding: "7px 10px", borderRadius: 8,
-            border: `1px solid ${colors.border}`, background: "#081832",
+            border: `1px solid ${colors.border}`, background: colors.inputBg,
             color: colors.text, fontSize: 12, outline: "none",
             fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box",
           }}

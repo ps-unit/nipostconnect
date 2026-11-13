@@ -1,16 +1,13 @@
-// client/src/pages/SettingsPage.jsx — Phase 5 (Responsive)
-import { useState } from "react";
+// client/src/pages/SettingsPage.jsx — Phase 5 (Responsive + Day/Night Theme Toggle)
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useResponsive } from "../hooks/useResponsive";
+import api from "../services/api";
+import { colors as C, getTheme, toggleTheme } from "../components/shared/styles";
 import ProfileTab from "../components/settings/ProfileTab";
 import SecurityTab from "../components/settings/SecurityTab";
 import NotificationsTab from "../components/settings/NotificationsTab";
 import TwoFASetupModal from "../components/modals/TwoFASetupModal";
-
-const C = {
-  bg:"#081832", surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
-};
 
 const TABS = [
   { id:"profile",       icon:"👤", label:"Profile"       },
@@ -24,6 +21,19 @@ export default function SettingsPage({ onClose }) {
   const [tab, setTab]       = useState("profile");
   const [show2FA, setShow2FA] = useState(false);
   const [twoFAMode, setTwoFAMode] = useState("setup");
+  const [theme, setTheme]   = useState(() => getTheme());
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail?.theme || getTheme());
+    window.addEventListener("theme:changed", onThemeChange);
+    return () => window.removeEventListener("theme:changed", onThemeChange);
+  }, []);
+
+  const handleToggleTheme = () => {
+    const next = toggleTheme();
+    setTheme(next);
+    api.patch("/profile/settings", { theme: next }).catch(() => {});
+  };
 
   const open2FA = (mode) => { setTwoFAMode(mode); setShow2FA(true); };
 
@@ -41,8 +51,17 @@ export default function SettingsPage({ onClose }) {
             {user?.name} · {user?.email}
           </div>
         </div>
+        <button onClick={handleToggleTheme}
+          title="Switch between Day and Night mode"
+          style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${C.border}`,
+            background:C.surfaceAlt, color:C.text, cursor:"pointer", fontSize:12,
+            fontWeight:600, fontFamily:"'DM Sans',sans-serif", flexShrink:0,
+            display:"flex", alignItems:"center", gap:6 }}>
+          <span>{theme === "light" ? "☀️" : "🌙"}</span>
+          <span>{theme === "light" ? "Day" : "Night"}</span>
+        </button>
         <button onClick={onClose}
-          style={{ marginLeft:"auto", padding:"6px 14px", borderRadius:7,
+          style={{ padding:"6px 14px", borderRadius:7,
             border:`1px solid ${C.border}`, background:"transparent",
             color:C.muted, cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
           ✕ Close
@@ -76,7 +95,7 @@ export default function SettingsPage({ onClose }) {
               <button key={t.id} onClick={()=>setTab(t.id)}
                 style={{ width:"100%", display:"flex", alignItems:"center", gap:12,
                   padding:"10px 14px", borderRadius:9, border:"none",
-                  background:tab===t.id?"rgba(212,168,67,0.1)":"transparent",
+                  background:tab===t.id?C.goldDim:"transparent",
                   cursor:"pointer", textAlign:"left", marginBottom:4,
                   fontFamily:"'DM Sans',sans-serif" }}>
                 <span style={{ fontSize:18 }}>{t.icon}</span>

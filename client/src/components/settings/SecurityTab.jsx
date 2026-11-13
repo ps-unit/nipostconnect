@@ -3,13 +3,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../services/api";
+import { colors as C } from "../shared/styles";
 
-const C = {
-  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)",
-  text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
-};
 const inp = { width:"100%", padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border}`,
-  background:"#081832", color:C.text, fontSize:14, marginBottom:14,
+  background:C.inputBg, color:C.text, fontSize:14, marginBottom:14,
   boxSizing:"border-box", fontFamily:"'DM Sans',sans-serif", outline:"none" };
 const lbl = { display:"block", color:C.muted, fontSize:12, fontWeight:600, letterSpacing:"0.06em", marginBottom:6 };
 

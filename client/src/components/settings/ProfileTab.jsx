@@ -1,17 +1,12 @@
-// client/src/components/settings/ProfileTab.jsx — Phase 5 (Responsive + Fixed Avatar Upload)
+// client/src/components/settings/ProfileTab.jsx — Phase 5 (Responsive + Avatar + Day/Night Theme + Editable Role/State/Dept)
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../services/api";
-import { resolveUploadUrl } from "../shared/styles";
+import { colors as C, resolveUploadUrl, getTheme, applyTheme } from "../shared/styles";
 
-const C = {
-  surface: "#081A35", surfaceAlt: "#0D2244", border: "#1E3A5F", gold: "var(--accent-color, #D4A843)",
-  text: "#E8EDF5", muted: "#6B8299", textMid: "#B0BDD0", ghost: "#2E4A6B",
-  success: "#22C55E", danger: "#EF4444",
-};
 const inp = {
   width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
-  background: "#081832", color: C.text, fontSize: 14, marginBottom: 14,
+  background: C.inputBg, color: C.text, fontSize: 14, marginBottom: 14,
   boxSizing: "border-box", fontFamily: "'DM Sans',sans-serif", outline: "none"
 };
 const lbl = { display: "block", color: C.muted, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 6 };
@@ -30,8 +25,16 @@ export default function ProfileTab() {
   const { user, updateUser } = useAuth();
   const fileRef = useRef();
   const [form, setForm] = useState({
-    name: user?.name || "", phone: user?.phone || "", postOffice: user?.postOffice || "",
+    name: user?.name || "",
+    phone: user?.phone || "",
+    postOffice: user?.postOffice || "",
+    role: user?.role || "STAFF",
+    stateId: user?.stateId || user?.state?.id || "",
+    departmentId: user?.departmentId || user?.department?.id || "",
   });
+  const [states, setStates] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [theme, setThemeState] = useState(() => getTheme());
   const [avatarPreview, setAvatarPreview] = useState(resolveUploadUrl(user?.avatarUrl) || null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [imgError, setImgError] = useState(false);
@@ -40,11 +43,29 @@ export default function ProfileTab() {
   const [msg, setMsg] = useState({ type: "", text: "" });
 
   useEffect(() => {
+    api.get("/users/setup/options")
+      .then(r => {
+        setStates(r.data.states || []);
+        setDepartments(r.data.departments || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const onThemeChange = (e) => setThemeState(e.detail?.theme || getTheme());
+    window.addEventListener("theme:changed", onThemeChange);
+    return () => window.removeEventListener("theme:changed", onThemeChange);
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setForm(prev => ({
         name: prev.name || user.name || "",
         phone: prev.phone || user.phone || "",
         postOffice: prev.postOffice || user.postOffice || "",
+        role: user.role || prev.role || "STAFF",
+        stateId: user.stateId || user.state?.id || prev.stateId || "",
+        departmentId: user.departmentId || user.department?.id || prev.departmentId || "",
       }));
       if (!avatarFile) {
         setAvatarPreview(resolveUploadUrl(user.avatarUrl) || null);
@@ -54,6 +75,17 @@ export default function ProfileTab() {
   }, [user, avatarFile]);
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg({ type: "", text: "" }), 4000); };
+
+  const handleThemeSelect = async (mode) => {
+    applyTheme(mode, { persist: true });
+    setThemeState(mode);
+    try {
+      await api.patch("/profile/settings", { theme: mode });
+      showMsg("success", `Switched to ${mode === "light" ? "Day (Light)" : "Night (Dark)"} mode`);
+    } catch {
+      showMsg("success", `Switched to ${mode === "light" ? "Day (Light)" : "Night (Dark)"} mode`);
+    }
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -118,9 +150,13 @@ export default function ProfileTab() {
         name: form.name.trim(),
         phone: form.phone.trim(),
         postOffice: form.postOffice.trim(),
+        role: form.role,
+        stateId: form.stateId || null,
+        departmentId: form.departmentId || null,
       });
       updateUser({ ...r.data.user, avatarUrl: updatedAvatarUrl ?? resolveUploadUrl(r.data.user?.avatarUrl) });
-      showMsg("success", "Profile saved successfully");
+      window.dispatchEvent(new CustomEvent("user:role-updated"));
+      showMsg("success", "Profile & role saved successfully");
     } catch (e) {
       showMsg("error", e.response?.data?.error || e.response?.data?.errors?.[0]?.msg || "Save failed");
     } finally {
@@ -130,7 +166,7 @@ export default function ProfileTab() {
 
   return (
     <div style={{ maxWidth: 560, width: "100%" }}>
-      <h3 style={{ color: C.text, fontSize: 17, fontWeight: 700, margin: "0 0 20px" }}>Profile Information</h3>
+      <h3 style={{ color: C.text, fontSize: 17, fontWeight: 700, margin: "0 0 20px" }}>Profile & Appearance</h3>
 
       {/* Status banner */}
       {msg.text && (
@@ -138,11 +174,59 @@ export default function ProfileTab() {
           background: msg.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
           border: `1px solid ${msg.type === "success" ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
           borderRadius: 8, padding: "9px 14px", fontSize: 13,
-          color: msg.type === "success" ? "#86EFAC" : "#F87171", marginBottom: 16
+          color: msg.type === "success" ? "#22C55E" : "#EF4444", marginBottom: 16
         }}>
           {msg.type === "success" ? "✅" : "⚠️"} {msg.text}
         </div>
       )}
+
+      {/* ── Day & Night Theme Property ── */}
+      <div style={{
+        background: C.surfaceAlt, border: `1px solid ${C.border}`,
+        borderRadius: 12, padding: "clamp(14px, 3vw, 20px)", marginBottom: 20
+      }}>
+        <div style={{
+          fontSize: 13, fontWeight: 700, color: C.muted,
+          letterSpacing: "0.06em", marginBottom: 12
+        }}>APPEARANCE — DAY & NIGHT MODE</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => handleThemeSelect("light")}
+            style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+              borderRadius: 10, cursor: "pointer", textAlign: "left",
+              background: theme === "light" ? C.goldDim : C.inputBg,
+              border: `2px solid ${theme === "light" ? C.gold : C.border}`,
+              fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 24 }}>☀️</span>
+            <div>
+              <div style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Day Mode</div>
+              <div style={{ color: C.muted, fontSize: 11 }}>Light background, crisp contrast</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleThemeSelect("dark")}
+            style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+              borderRadius: 10, cursor: "pointer", textAlign: "left",
+              background: theme === "dark" ? C.goldDim : C.inputBg,
+              border: `2px solid ${theme === "dark" ? C.gold : C.border}`,
+              fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 24 }}>🌙</span>
+            <div>
+              <div style={{ color: C.text, fontWeight: 700, fontSize: 14 }}>Night Mode</div>
+              <div style={{ color: C.muted, fontSize: 11 }}>Dark navy theme for low light</div>
+            </div>
+          </button>
+        </div>
+      </div>
 
       {/* ── Avatar section ── */}
       <div style={{
@@ -245,9 +329,9 @@ export default function ProfileTab() {
           onChange={handleAvatarChange} style={{ display: "none" }} />
       </div>
 
-      {/* ── Personal details ── */}
+      {/* ── Personal & Role details ── */}
       <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: "clamp(14px, 3vw, 20px)", marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 16 }}>PERSONAL DETAILS</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 16 }}>PERSONAL & ROLE DETAILS</div>
 
         <label style={lbl}>Full Name *</label>
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inp} />
@@ -260,22 +344,45 @@ export default function ProfileTab() {
         <input value={form.postOffice} onChange={e => setForm({ ...form, postOffice: e.target.value })}
           placeholder="e.g. Kano Central Post Office" style={inp} />
 
-        {/* Read-only fields */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 10, marginBottom: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12 }}>
+          <div>
+            <label style={lbl}>Role</label>
+            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={{ ...inp, cursor: "pointer" }}>
+              <option value="STAFF">Staff</option>
+              <option value="DEPT_ADMIN">Dept Admin</option>
+              <option value="STATE_ADMIN">State Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={lbl}>State</label>
+            <select value={form.stateId} onChange={e => setForm({ ...form, stateId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>
+              <option value="">— Select State —</option>
+              {states.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={lbl}>Department</label>
+            <select value={form.departmentId} onChange={e => setForm({ ...form, departmentId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>
+              <option value="">— Select Department —</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Read-only identifiers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 10, marginBottom: 16 }}>
           {[
             { label: "Email", value: user?.email },
             { label: "Staff ID", value: user?.staffId },
-            { label: "State", value: user?.state?.name || "—" },
-            { label: "Department", value: user?.department?.name || "—" },
           ].map(f => (
-            <div key={f.label} style={{ background: "#081832", border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", minWidth: 0 }}>
+            <div key={f.label} style={{ background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", minWidth: 0 }}>
               <div style={{ color: C.ghost, fontSize: 11, marginBottom: 3 }}>{f.label}</div>
               <div style={{ color: C.textMid, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.value}</div>
             </div>
           ))}
-        </div>
-        <div style={{ color: C.ghost, fontSize: 11, marginBottom: 16, marginTop: 8 }}>
-          Email, Staff ID, State and Department can only be changed by an administrator.
         </div>
 
         <button onClick={handleSaveProfile} disabled={saving}

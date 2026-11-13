@@ -1,7 +1,6 @@
-
-// client/src/components/modals/AdminPanel.jsx — v5 (adds Departments tab)
+// client/src/components/modals/AdminPanel.jsx — v6 (Editable Roles + State/Dept + Channel Access Sync + Day/Night Theme)
 import { useState, useEffect, useCallback } from "react";
-import { adminAPI } from "../../services/api";
+import api, { adminAPI } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { s, colors, ROLE_BADGE } from "../shared/styles";
 import { format } from "date-fns";
@@ -25,7 +24,7 @@ export default function AdminPanel({ onClose, onChannelCreated, onDeptCreated })
   return (
     <div style={s.modalOverlay}>
       <div style={{ background:colors.surfaceAlt, border:`1px solid ${colors.border}`, borderRadius:16,
-        width:"min(860px, 96vw)", maxHeight:"calc(100dvh - 24px)", overflow:"hidden", display:"flex", flexDirection:"column" }}>
+        width:"min(880px, 96vw)", maxHeight:"calc(100dvh - 24px)", overflow:"hidden", display:"flex", flexDirection:"column" }}>
 
         {/* Header */}
         <div style={{ padding:"14px clamp(14px, 3vw, 24px)", borderBottom:`1px solid ${colors.border}`,
@@ -52,9 +51,9 @@ export default function AdminPanel({ onClose, onChannelCreated, onDeptCreated })
         <div style={{ flex:1, overflowY:"auto", padding:"clamp(12px, 3vw, 24px)" }}>
           {tab==="overview"    && <OverviewTab />}
           {tab==="departments" && <DepartmentsTab onCreated={onDeptCreated} />}
-          {tab==="requests"    && <RequestsTab />}
-          {tab==="users"       && <UsersTab />}
-          {tab==="roles"       && <RolesTab />}
+          {tab==="requests"    && <RequestsTab onUpdated={onChannelCreated} />}
+          {tab==="users"       && <UsersTab onUpdated={onChannelCreated} />}
+          {tab==="roles"       && <RolesTab onUpdated={onChannelCreated} />}
           {tab==="broadcast"   && <BroadcastTab />}
           {tab==="log"         && <AuditLogTab />}
         </div>
@@ -80,7 +79,7 @@ function OverviewTab() {
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 130px), 1fr))", gap:12, marginBottom:20 }}>
         {cards.map(c => (
-          <div key={c.label} style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:"14px 16px" }}>
+          <div key={c.label} style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:10, padding:"14px 16px" }}>
             <div style={{ fontSize:22, marginBottom:6 }}>{c.icon}</div>
             <div style={{ color:c.color, fontWeight:700, fontSize:22 }}>{c.value?.toLocaleString?.()}</div>
             <div style={{ color:colors.muted, fontSize:12, marginTop:3 }}>{c.label}</div>
@@ -88,7 +87,7 @@ function OverviewTab() {
         ))}
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap:12 }}>
-        <div style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:14 }}>
+        <div style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:10, padding:14 }}>
           <div style={{ color:colors.muted, fontSize:11, fontWeight:700, letterSpacing:"0.07em", marginBottom:10 }}>THIS WEEK</div>
           {[["New Staff",stats.thisWeek?.newUsers||0],["Messages",stats.thisWeek?.messages||0]].map(([k,v])=>(
             <div key={k} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:`1px solid ${colors.borderDim}`, fontSize:13 }}>
@@ -97,7 +96,7 @@ function OverviewTab() {
             </div>
           ))}
         </div>
-        <div style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:14 }}>
+        <div style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:10, padding:14 }}>
           <div style={{ color:colors.muted, fontSize:11, fontWeight:700, letterSpacing:"0.07em", marginBottom:10 }}>TOP STATES</div>
           {(stats.byState||[]).filter(s=>s._count.users>0).sort((a,b)=>b._count.users-a._count.users).slice(0,5).map(s=>(
             <div key={s.name} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:`1px solid ${colors.borderDim}`, fontSize:13 }}>
@@ -112,7 +111,7 @@ function OverviewTab() {
 }
 
 // ── Join Requests ─────────────────────────────────────────────────────────────
-function RequestsTab() {
+function RequestsTab({ onUpdated }) {
   const [requests,setRequests]=useState([]);
   const [filter,setFilter]=useState("PENDING");
   const [loading,setLoading]=useState(false);
@@ -122,7 +121,11 @@ function RequestsTab() {
     const note=action==="reject"?window.prompt("Reason (optional):"):undefined;
     if(note===null)return;
     setLoading(true);
-    try{await fetch(`/api/channels/${req.channelId}/join-request/${req.id}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${localStorage.getItem("accessToken")}`},body:JSON.stringify({action,note})});load();}catch{}
+    try{
+      await api.patch(`/channels/${req.channelId}/join-request/${req.id}`, { action, note });
+      load();
+      onUpdated?.();
+    }catch{}
     setLoading(false);
   };
   return (
@@ -138,7 +141,7 @@ function RequestsTab() {
       </div>
       {requests.length===0&&<div style={{textAlign:"center",padding:32,color:colors.ghost,fontSize:13}}>No {filter.toLowerCase()} requests</div>}
       {requests.map(r=>(
-        <div key={r.id} style={{ background:"#081A35", border:`1px solid ${colors.border}`, borderRadius:10, padding:14, marginBottom:10 }}>
+        <div key={r.id} style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:10, padding:14, marginBottom:10 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:10 }}>
             <div>
               <div style={{ color:colors.text, fontWeight:600, marginBottom:3 }}>{r.user.name} <span style={{ color:colors.muted, fontWeight:400, fontSize:12 }}>({r.user.staffId})</span></div>
@@ -160,16 +163,67 @@ function RequestsTab() {
 }
 
 // ── Staff ─────────────────────────────────────────────────────────────────────
-function UsersTab() {
+function UsersTab({ onUpdated }) {
+  const { user: me, updateUser } = useAuth();
   const [users,setUsers]=useState([]);
+  const [states,setStates]=useState([]);
+  const [depts,setDepts]=useState([]);
   const [search,setSearch]=useState("");
   const [total,setTotal]=useState(0);
-  const load=useCallback(()=>{ adminAPI.users({search,limit:30}).then(r=>{setUsers(r.data.users||[]);setTotal(r.data.total||0);}).catch(()=>{}); },[search]);
-  useEffect(()=>{const t=setTimeout(load,300);return()=>clearTimeout(t);},[load]);
-  const updateRole=async(id,role)=>{try{await adminAPI.updateUser(id,{role});load();}catch(e){alert(e.response?.data?.error||"Failed");}};
-  const updateStatus=async(id,status)=>{if(!window.confirm(`Set status to ${status}?`))return;try{await adminAPI.updateUser(id,{status});load();}catch(e){alert(e.response?.data?.error||"Failed");}};
+  const [banner,setBanner]=useState("");
+
+  useEffect(() => {
+    api.get("/users/setup/options")
+      .then(r => {
+        setStates(r.data.states || []);
+        setDepts(r.data.departments || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const load=useCallback(()=>{
+    adminAPI.users({search,limit:50})
+      .then(r=>{setUsers(r.data.users||[]);setTotal(r.data.total||0);})
+      .catch(()=>{});
+  },[search]);
+
+  useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t);},[load]);
+
+  const showNotice = (msg) => {
+    setBanner(msg);
+    setTimeout(() => setBanner(""), 3500);
+  };
+
+  const handleUpdateUser = async (id, patch, label = "Updated") => {
+    try {
+      const r = await adminAPI.updateUser(id, patch);
+      if (id === me?.id && r.data?.user) {
+        updateUser(r.data.user);
+      }
+      load();
+      onUpdated?.();
+      window.dispatchEvent(new CustomEvent("user:role-updated"));
+      showNotice(`✅ ${label}`);
+    } catch (e) {
+      alert(e.response?.data?.error || "Failed to update user");
+    }
+  };
+
+  const updateStatus=async(id,status)=>{
+    if(!window.confirm(`Set status to ${status}?`))return;
+    await handleUpdateUser(id, { status }, `Status set to ${status}`);
+  };
+
   return (
     <div>
+      {banner && (
+        <div style={{
+          background:"rgba(34,197,94,0.12)", border:"1px solid rgba(34,197,94,0.28)",
+          borderRadius:8, padding:"8px 14px", color:"#22C55E", fontSize:13, marginBottom:12
+        }}>
+          {banner}
+        </div>
+      )}
       <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center" }}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, email or staff ID..."
           style={{ ...s.input, flex:1, marginBottom:0 }} />
@@ -189,19 +243,53 @@ function UsersTab() {
               const badge=ROLE_BADGE[u.role];
               return(
                 <tr key={u.id} style={{ borderBottom:`1px solid ${colors.borderDim}` }}
-                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.02)"}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--hover-overlay, rgba(255,255,255,0.03))"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                   <td style={{ padding:"9px 10px", color:colors.muted, fontFamily:"monospace", fontSize:11 }}>{u.staffId}</td>
-                  <td style={{ padding:"9px 10px", color:colors.text, fontWeight:500 }}>{u.name}</td>
-                  <td style={{ padding:"9px 10px", color:colors.muted }}>{u.state?.name||"—"}</td>
-                  <td style={{ padding:"9px 10px", color:colors.muted }}>{u.department?.name||"—"}</td>
+                  <td style={{ padding:"9px 10px", color:colors.text, fontWeight:600 }}>{u.name}</td>
                   <td style={{ padding:"9px 10px" }}>
-                    <select value={u.role} onChange={e=>updateRole(u.id,e.target.value)}
-                      style={{ background:badge?badge.bg:colors.borderDim, color:badge?badge.color:colors.muted,
-                        border:"none", borderRadius:6, padding:"3px 7px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                      {["STAFF","DEPT_ADMIN","STATE_ADMIN","SUPER_ADMIN"].map(r=>(
-                        <option key={r} value={r}>{r.replace("_"," ")}</option>
-                      ))}
+                    <select
+                      value={u.state?.id || ""}
+                      onChange={e => handleUpdateUser(u.id, { stateId: e.target.value || null }, `${u.name}'s state updated`)}
+                      style={{
+                        background:colors.inputBg, color:colors.textMid,
+                        border:`1px solid ${colors.border}`, borderRadius:6,
+                        padding:"4px 6px", fontSize:11, cursor:"pointer", maxWidth:130
+                      }}
+                    >
+                      <option value="">— State —</option>
+                      {states.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ padding:"9px 10px" }}>
+                    <select
+                      value={u.department?.id || ""}
+                      onChange={e => handleUpdateUser(u.id, { departmentId: e.target.value || null }, `${u.name}'s department updated`)}
+                      style={{
+                        background:colors.inputBg, color:colors.textMid,
+                        border:`1px solid ${colors.border}`, borderRadius:6,
+                        padding:"4px 6px", fontSize:11, cursor:"pointer", maxWidth:140
+                      }}
+                    >
+                      <option value="">— Dept —</option>
+                      {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ padding:"9px 10px" }}>
+                    <select
+                      value={u.role}
+                      onChange={e => handleUpdateUser(u.id, { role: e.target.value }, `${u.name}'s role changed to ${e.target.value.replace("_", " ")}`)}
+                      style={{
+                        background:badge?badge.bg:colors.surface,
+                        color:badge?badge.color:colors.text,
+                        border:`1px solid ${colors.border}`,
+                        borderRadius:6, padding:"4px 8px", fontSize:11, fontWeight:700, cursor:"pointer"
+                      }}
+                    >
+                      <option value="STAFF">STAFF</option>
+                      <option value="DEPT_ADMIN">DEPT ADMIN</option>
+                      <option value="STATE_ADMIN">STATE ADMIN</option>
+                      <option value="SUPER_ADMIN">SUPER ADMIN</option>
                     </select>
                   </td>
                   <td style={{ padding:"9px 10px" }}>
@@ -227,34 +315,159 @@ function UsersTab() {
   );
 }
 
-// ── Roles ─────────────────────────────────────────────────────────────────────
-function RolesTab() {
-  const roles=[
-    {role:"SUPER_ADMIN",badge:ROLE_BADGE.SUPER_ADMIN,desc:"Full platform control.",
-     perms:["All permissions","Emergency broadcast","Org settings","Manage departments","Assign any role","Archive channels"]},
-    {role:"STATE_ADMIN",badge:ROLE_BADGE.STATE_ADMIN,desc:"Manages assigned state.",
+// ── Roles (Editable Role Assignment + Role Overview) ──────────────────────────
+function RolesTab({ onUpdated }) {
+  const { user: me, updateUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedRole, setSelectedRole] = useState("SUPER_ADMIN");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const loadUsers = useCallback(() => {
+    adminAPI.users({ limit: 100 })
+      .then(r => setUsers(r.data.users || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const handleAssignRole = async (userId, role) => {
+    if (!userId || !role) return;
+    setSaving(true);
+    try {
+      const r = await adminAPI.updateUser(userId, { role });
+      if (userId === me?.id && r.data?.user) {
+        updateUser(r.data.user);
+      }
+      loadUsers();
+      onUpdated?.();
+      window.dispatchEvent(new CustomEvent("user:role-updated"));
+      setMsg(`✅ Role updated to ${role.replace("_", " ")} and channel permissions synced!`);
+      setTimeout(() => setMsg(""), 4000);
+    } catch (e) {
+      alert(e.response?.data?.error || "Failed to update role");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const roles = [
+    {role:"SUPER_ADMIN",badge:ROLE_BADGE.SUPER_ADMIN,desc:"Full platform control & automatic access to all channels.",
+     perms:["All permissions","Access all channels","Emergency broadcast","Org settings","Manage departments","Assign any role"]},
+    {role:"STATE_ADMIN",badge:ROLE_BADGE.STATE_ADMIN,desc:"Manages assigned state and state channels.",
      perms:["Create/archive state channels","Approve join requests","Pin messages","Suspend state staff"]},
-    {role:"DEPT_ADMIN",badge:ROLE_BADGE.DEPT_ADMIN,desc:"Manages assigned department.",
+    {role:"DEPT_ADMIN",badge:ROLE_BADGE.DEPT_ADMIN,desc:"Manages assigned department and department channels.",
      perms:["Post official memos","Create polls","Moderate dept channel","Approve join requests in dept"]},
     {role:"STAFF",badge:null,desc:"All verified NiPOST staff.",
      perms:["View public channels","Post in joined channels","Submit suggestions","Vote on polls","Send DMs"]},
   ];
+
   return(
     <div>
-      {roles.map(r=>(
-        <div key={r.role} style={{ background:"#081A35", border:`1px solid ${r.badge?r.badge.bg+"33":colors.border}`, borderRadius:10, padding:16, marginBottom:12 }}>
-          <div style={{ marginBottom:8 }}>
-            {r.badge?<span style={{ fontSize:11, padding:"3px 10px", borderRadius:12, background:r.badge.bg, color:r.badge.color, fontWeight:700 }}>{r.role.replace("_"," ")}</span>
-              :<span style={{ fontSize:11, padding:"3px 10px", borderRadius:12, background:colors.border, color:colors.text, fontWeight:700 }}>STAFF</span>}
-          </div>
-          <p style={{ color:colors.muted, fontSize:13, margin:"0 0 10px" }}>{r.desc}</p>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {r.perms.map(p=>(
-              <span key={p} style={{ fontSize:11, padding:"3px 9px", borderRadius:12, background:"rgba(255,255,255,0.06)", color:colors.textMid }}>✓ {p}</span>
-            ))}
-          </div>
+      {/* Quick Role Editor Card */}
+      <div style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:12, padding:16, marginBottom:16 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:colors.gold, letterSpacing:"0.06em", marginBottom:10 }}>
+          ⚡ ASSIGN OR CHANGE STAFF ROLE
         </div>
-      ))}
+        {msg && (
+          <div style={{
+            background:"rgba(34,197,94,0.12)", border:"1px solid rgba(34,197,94,0.28)",
+            borderRadius:8, padding:"8px 12px", color:"#22C55E", fontSize:12, marginBottom:12
+          }}>
+            {msg}
+          </div>
+        )}
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+          <select
+            value={selectedUserId}
+            onChange={e => {
+              const uid = e.target.value;
+              setSelectedUserId(uid);
+              const found = users.find(x => x.id === uid);
+              if (found) setSelectedRole(found.role);
+            }}
+            style={{ ...s.input, marginBottom:0, flex:"1 1 220px", cursor:"pointer" }}
+          >
+            <option value="">— Select Staff Member —</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.staffId}) — Current: {u.role.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedRole}
+            onChange={e => setSelectedRole(e.target.value)}
+            style={{ ...s.input, marginBottom:0, flex:"0 1 180px", cursor:"pointer" }}
+          >
+            <option value="STAFF">Staff</option>
+            <option value="DEPT_ADMIN">Dept Admin</option>
+            <option value="STATE_ADMIN">State Admin</option>
+            <option value="SUPER_ADMIN">Super Admin</option>
+          </select>
+
+          <button
+            disabled={!selectedUserId || saving}
+            onClick={() => handleAssignRole(selectedUserId, selectedRole)}
+            style={{ ...s.primaryButton, opacity:!selectedUserId || saving ? 0.6 : 1, whiteSpace:"nowrap" }}
+          >
+            {saving ? "Updating..." : "Update Role"}
+          </button>
+        </div>
+      </div>
+
+      {/* Role Cards with Assigned Staff */}
+      {roles.map(r => {
+        const membersInRole = users.filter(u => u.role === r.role);
+        return (
+          <div key={r.role} style={{ background:colors.surface, border:`1px solid ${colors.border}`, borderRadius:10, padding:16, marginBottom:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8, flexWrap:"wrap", gap:8 }}>
+              <div>
+                {r.badge
+                  ? <span style={{ fontSize:11, padding:"3px 10px", borderRadius:12, background:r.badge.bg, color:r.badge.color, fontWeight:700 }}>{r.role.replace("_"," ")}</span>
+                  : <span style={{ fontSize:11, padding:"3px 10px", borderRadius:12, background:colors.border, color:colors.text, fontWeight:700 }}>STAFF</span>}
+              </div>
+              <span style={{ fontSize:12, color:colors.muted, fontWeight:600 }}>
+                {membersInRole.length} {membersInRole.length === 1 ? "member" : "members"}
+              </span>
+            </div>
+            <p style={{ color:colors.muted, fontSize:13, margin:"0 0 10px" }}>{r.desc}</p>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: membersInRole.length > 0 ? 12 : 0 }}>
+              {r.perms.map(p=>(
+                <span key={p} style={{ fontSize:11, padding:"3px 9px", borderRadius:12, background:colors.surfaceAlt, border:`1px solid ${colors.borderDim}`, color:colors.textMid }}>✓ {p}</span>
+              ))}
+            </div>
+            {membersInRole.length > 0 && (
+              <div style={{ borderTop:`1px solid ${colors.borderDim}`, paddingTop:10, display:"flex", flexWrap:"wrap", gap:8 }}>
+                {membersInRole.map(u => (
+                  <div key={u.id} style={{
+                    display:"flex", alignItems:"center", gap:8, padding:"4px 10px",
+                    borderRadius:8, background:colors.surfaceAlt, border:`1px solid ${colors.border}`
+                  }}>
+                    <span style={{ fontSize:12, color:colors.text, fontWeight:600 }}>{u.name}</span>
+                    <select
+                      value={u.role}
+                      onChange={e => handleAssignRole(u.id, e.target.value)}
+                      style={{
+                        fontSize:10, padding:"2px 6px", borderRadius:6,
+                        background:colors.inputBg, color:colors.gold,
+                        border:`1px solid ${colors.border}`, fontWeight:700, cursor:"pointer"
+                      }}
+                    >
+                      <option value="STAFF">Staff</option>
+                      <option value="DEPT_ADMIN">Dept Admin</option>
+                      <option value="STATE_ADMIN">State Admin</option>
+                      <option value="SUPER_ADMIN">Super Admin</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -278,7 +491,7 @@ function BroadcastTab() {
         <div style={{ color:"#F87171", fontWeight:700, marginBottom:4 }}>🚨 Emergency Broadcast</div>
         <div style={{ color:colors.muted, fontSize:13 }}>Delivers instantly to all online staff as a pop-up alert. Super Admin only.</div>
       </div>
-      {sent&&<div style={{ background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:8, padding:"9px 12px", color:"#86EFAC", fontSize:13, marginBottom:14 }}>✅ Broadcast sent to all staff.</div>}
+      {sent&&<div style={{ background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:8, padding:"9px 12px", color:"#22C55E", fontSize:13, marginBottom:14 }}>✅ Broadcast sent to all staff.</div>}
       <label style={s.label}>Message *</label>
       <textarea value={content} onChange={e=>{setContent(e.target.value);setSent(false);}} rows={5}
         placeholder="Emergency message..." style={{ ...s.input, resize:"vertical", fontFamily:"inherit" }} />

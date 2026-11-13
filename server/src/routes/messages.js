@@ -63,9 +63,15 @@ router.get("/:channelId", authenticate,
           data: unread.map(m => ({ messageId: m.id, userId: req.user.id })),
           skipDuplicates: true,
         });
-        await prisma.channelMember.update({
+        await prisma.channelMember.upsert({
           where: { userId_channelId: { userId: req.user.id, channelId } },
-          data: { lastReadAt: new Date() },
+          update: { lastReadAt: new Date() },
+          create: {
+            userId: req.user.id,
+            channelId,
+            isAdmin: req.user.role === "SUPER_ADMIN",
+            lastReadAt: new Date(),
+          },
         });
       }
 

@@ -3,6 +3,7 @@ const express = require("express");
 const { body, validationResult } = require("express-validator");
 const { PrismaClient } = require("@prisma/client");
 const { authenticate } = require("../middleware/auth");
+const { syncUserChannelMemberships } = require("../utils/channelSync");
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -74,12 +75,15 @@ router.patch("/me/profile", authenticate, [
   body("phone").optional({ values: "falsy" }).trim().isLength({ max: 30 }),
   body("postOffice").optional({ values: "falsy" }).trim().isLength({ max: 200 }),
   body("avatar").optional({ values: "falsy" }).trim().isLength({ max: 10 }),  // initials/emoji
+  body("role").optional().isIn(["SUPER_ADMIN", "STATE_ADMIN", "DEPT_ADMIN", "STAFF"]),
+  body("stateId").optional({ values: "falsy" }).isUUID(),
+  body("departmentId").optional({ values: "falsy" }).isUUID(),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-    const { name, phone, postOffice, avatar } = req.body;
+    const { name, phone, postOffice, avatar, role, stateId, departmentId } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
@@ -88,9 +92,27 @@ router.patch("/me/profile", authenticate, [
         ...(phone !== undefined && { phone: phone || null }),
         ...(postOffice !== undefined && { postOffice: postOffice || null }),
         ...(avatar !== undefined && { avatar: avatar || null }),
+        ...(role && { role }),
+        ...(stateId !== undefined && { stateId: stateId || null }),
+        ...(departmentId !== undefined && { departmentId: departmentId || null }),
       },
       include: { state: true, department: true },
     });
+
+    const io = req.app.get("io");
+    await syncUserChannelMemberships(prisma, user, io);
+
+    if (io) {
+      io.to(`user:${user.id}`).emit("user:updated", {
+        id: user.id,
+        role: user.role,
+        status: user.status,
+        stateId: user.stateId,
+        departmentId: user.departmentId,
+        state: user.state,
+        department: user.department,
+      });
+    }
 
     res.json({ user });
   } catch (err) { next(err); }

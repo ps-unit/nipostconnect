@@ -7,6 +7,7 @@ require("dotenv").config({ path: path.join(__dirname, "../../../.env") });
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const { startDbProxy } = require("./dbProxy");
+const { syncUserChannelMemberships } = require("./channelSync");
 
 const defaultPrisma = new PrismaClient();
 
@@ -268,6 +269,13 @@ async function ensureSeeded(prisma = defaultPrisma) {
       ]);
       if (stateCount < STATES.length || deptCount < DEPARTMENTS.length) {
         await seedDatabase(prisma);
+      }
+      // Ensure all existing users (especially Super Admins) have synced channel memberships
+      const users = await prisma.user.findMany({
+        select: { id: true, role: true, stateId: true, departmentId: true },
+      });
+      for (const u of users) {
+        await syncUserChannelMemberships(prisma, u);
       }
     } catch (err) {
       console.error("[AutoSeed] Error checking/seeding database:", err.message);

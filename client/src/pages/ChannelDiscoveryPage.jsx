@@ -1,13 +1,9 @@
 
 // client/src/pages/ChannelDiscoveryPage.jsx — Phase 7
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { channelsAPI } from "../services/api";
-
-const C = {
-  bg:"#081832", surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
-  online:"#22C55E",
-};
+import { useAuth } from "../contexts/AuthContext";
+import { colors as C } from "../components/shared/styles";
 
 const TYPE_META = {
   ANNOUNCEMENT: { icon:"📢", color:"#D4A843", label:"Announcement" },
@@ -22,6 +18,7 @@ const TYPE_META = {
 const FILTER_TYPES = ["ALL", "STATE", "DEPARTMENT", "GENERAL", "ANNOUNCEMENT", "SUGGESTION"];
 
 export default function ChannelDiscoveryPage({ onSelectChannel }) {
+  const { user } = useAuth();
   const [channels, setChannels]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
@@ -44,8 +41,9 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
     return true;
   });
 
-  const joined     = filtered.filter(ch => ch.isMember);
-  const notJoined  = filtered.filter(ch => !ch.isMember);
+  const isUserMember = (ch) => Boolean(ch.isMember || user?.role === "SUPER_ADMIN");
+  const joined     = filtered.filter(ch => isUserMember(ch));
+  const notJoined  = filtered.filter(ch => !isUserMember(ch));
 
   const handleJoin = async (ch) => {
     if (ch.isLocked) {
@@ -111,7 +109,7 @@ export default function ChannelDiscoveryPage({ onSelectChannel }) {
 
         {/* Action button */}
         <div style={{ flexShrink:0 }}>
-          {ch.isMember ? (
+          {isUserMember(ch) ? (
             <button onClick={() => onSelectChannel?.(ch.id)}
               style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${C.gold}`,
                 background:"rgba(212,168,67,0.08)", color:C.gold,

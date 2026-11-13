@@ -29,15 +29,38 @@ const requireChannelAccess = (adminOnly = false) => async (req, res, next) => {
     const channel = await prisma.channel.findUnique({ where: { id: channelId } });
     if (!channel) return res.status(404).json({ error: "Channel not found" });
 
-    // Super admin bypasses all channel checks
+    // Super admin bypasses all channel checks and gets auto-registered as channel admin
     if (req.user.role === "SUPER_ADMIN") {
       req.channel = channel;
+      req.membership = await prisma.channelMember.upsert({
+        where: { userId_channelId: { userId, channelId } },
+        update: { isAdmin: true },
+        create: { userId, channelId, isAdmin: true },
+      }).catch(() => ({ userId, channelId, isAdmin: true }));
       return next();
     }
 
-    const membership = await prisma.channelMember.findUnique({
+    let membership = await prisma.channelMember.findUnique({
       where: { userId_channelId: { userId, channelId } },
     });
+
+    // Auto-enroll if user belongs to this State/Department or channel is an open national channel
+    if (!membership) {
+      const matchesState = req.user.stateId && channel.stateId === req.user.stateId;
+      const matchesDept  = req.user.departmentId && channel.departmentId === req.user.departmentId;
+      const isOpenPublic = !channel.isLocked && ["ANNOUNCEMENT", "SUGGESTION", "GENERAL", "EMERGENCY"].includes(channel.type);
+
+      if (matchesState || matchesDept || isOpenPublic) {
+        const shouldBeAdmin =
+          (matchesState && req.user.role === "STATE_ADMIN") ||
+          (matchesDept && req.user.role === "DEPT_ADMIN");
+        membership = await prisma.channelMember.upsert({
+          where: { userId_channelId: { userId, channelId } },
+          update: shouldBeAdmin ? { isAdmin: true } : {},
+          create: { userId, channelId, isAdmin: Boolean(shouldBeAdmin) },
+        }).catch(() => null);
+      }
+    }
 
     if (!membership) {
       return res.status(403).json({ error: "You are not a member of this channel", code: "NOT_MEMBER" });

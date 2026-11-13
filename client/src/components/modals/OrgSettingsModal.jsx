@@ -3,14 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useResponsive } from "../../hooks/useResponsive";
-import { resolveUploadUrl, applyOrgBranding } from "../shared/styles";
+import { resolveUploadUrl, applyOrgBranding, colors as C, getTheme, applyTheme } from "../shared/styles";
 
-const C = {
-  surfaceAlt:"#0D2244", border:"#1E3A5F", gold:"var(--accent-color, #D4A843)",
-  text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
-};
 const inp = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`,
-  background:"#081832", color:C.text, fontSize:14, marginBottom:14,
+  background:C.inputBg, color:C.text, fontSize:14, marginBottom:14,
   boxSizing:"border-box", fontFamily:"'DM Sans',sans-serif", outline:"none" };
 const lbl = { display:"block", color:C.muted, fontSize:12, fontWeight:600, letterSpacing:"0.06em", marginBottom:6 };
 
@@ -43,6 +39,19 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
   const [saving, setSaving]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg]         = useState({ type:"", text:"" });
+  const [theme, setThemeState] = useState(() => getTheme());
+
+  useEffect(() => {
+    const onThemeChange = (e) => setThemeState(e.detail?.theme || getTheme());
+    window.addEventListener("theme:changed", onThemeChange);
+    return () => window.removeEventListener("theme:changed", onThemeChange);
+  }, []);
+
+  const handleSelectTheme = (mode) => {
+    applyTheme(mode, { persist: true });
+    setThemeState(mode);
+    api.patch("/profile/settings", { theme: mode }).catch(() => {});
+  };
 
   const showMsg = (type, text) => { setMsg({type,text}); setTimeout(()=>setMsg({type:"",text:""}),4000); };
 
@@ -230,7 +239,7 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
             {tab === "branding" && (
               <>
                 {/* Logo section */}
-                <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>ORGANISATION LOGO</div>
                   <div style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap" }}>
                     <div onClick={()=>logoRef.current?.click()}
@@ -280,7 +289,7 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
                 </div>
 
                 {/* Platform name + slogan */}
-                <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>PLATFORM IDENTITY</div>
                   <label style={lbl}>Platform Name</label>
                   <input value={form.name||""} onChange={e=>set("name",e.target.value)} style={inp} />
@@ -293,8 +302,50 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
                     placeholder="Shown to staff on first login..." />
                 </div>
 
+                {/* Day & Night Theme Mode */}
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:12 }}>APPEARANCE MODE (DAY & NIGHT)</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:10 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTheme("light")}
+                      style={{
+                        display:"flex", alignItems:"center", gap:10, padding:"11px 14px",
+                        borderRadius:10, cursor:"pointer", textAlign:"left",
+                        background: theme === "light" ? C.goldDim : C.surfaceAlt,
+                        border:`2px solid ${theme === "light" ? C.gold : C.border}`,
+                        fontFamily:"'DM Sans',sans-serif",
+                      }}
+                    >
+                      <span style={{ fontSize:20 }}>☀️</span>
+                      <div>
+                        <div style={{ color:C.text, fontWeight:700, fontSize:13 }}>Day Mode</div>
+                        <div style={{ color:C.muted, fontSize:11 }}>Light appearance</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTheme("dark")}
+                      style={{
+                        display:"flex", alignItems:"center", gap:10, padding:"11px 14px",
+                        borderRadius:10, cursor:"pointer", textAlign:"left",
+                        background: theme === "dark" ? C.goldDim : C.surfaceAlt,
+                        border:`2px solid ${theme === "dark" ? C.gold : C.border}`,
+                        fontFamily:"'DM Sans',sans-serif",
+                      }}
+                    >
+                      <span style={{ fontSize:20 }}>🌙</span>
+                      <div>
+                        <div style={{ color:C.text, fontWeight:700, fontSize:13 }}>Night Mode</div>
+                        <div style={{ color:C.muted, fontSize:11 }}>Dark appearance</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Accent color */}
-                <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>ACCENT COLOUR</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:14 }}>
                     {ACCENT_PRESETS.map(p => (
@@ -328,7 +379,7 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
 
             {/* ── Contact Info ── */}
             {tab === "contact" && (
-              <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18 }}>
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18 }}>
                 <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>CONTACT DETAILS</div>
                 <label style={lbl}>Official Email</label>
                 <input value={form.contactEmail||""} onChange={e=>set("contactEmail",e.target.value)}
@@ -347,7 +398,7 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
             {/* ── Platform Config ── */}
             {tab === "platform" && (
               <>
-                <div style={{ background:"#081832", border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, marginBottom:16 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"0.07em", marginBottom:14 }}>FILE UPLOAD LIMITS</div>
                   <label style={lbl}>Max File Size (MB)</label>
                   <input type="number" min={1} max={100}
@@ -360,7 +411,7 @@ export default function OrgSettingsModal({ onClose, onUpdated }) {
                   </div>
                 </div>
 
-                <div style={{ background:"#081832", border:`1px solid rgba(239,68,68,0.2)`, borderRadius:12, padding:18 }}>
+                <div style={{ background:C.surface, border:`1px solid rgba(239,68,68,0.2)`, borderRadius:12, padding:18 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:"#F87171", letterSpacing:"0.07em", marginBottom:10 }}>⚠️ MAINTENANCE MODE</div>
                   <div style={{ color:C.muted, fontSize:13, marginBottom:14 }}>
                     When enabled, only Super Admins can access the platform. All other staff see a maintenance notice.

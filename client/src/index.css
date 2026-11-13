@@ -11,6 +11,38 @@
   --accent-dim: rgba(212, 168, 67, 0.15);
   --accent-subtle: rgba(212, 168, 67, 0.08);
   --accent-border: rgba(212, 168, 67, 0.25);
+
+  /* Night (Dark) Theme — Default */
+  --bg-color: #081832;
+  --rail-bg: #050F20;
+  --surface-color: #081A35;
+  --surface-alt-color: #0D2244;
+  --input-bg: #081832;
+  --border-color: #1E3A5F;
+  --border-dim-color: #0D2244;
+  --text-color: #E8EDF5;
+  --text-mid-color: #B0BDD0;
+  --muted-color: #6B8299;
+  --muted-dim-color: #4B6280;
+  --ghost-color: #3E5D82;
+  --hover-overlay: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="light"] {
+  /* Day (Light) Theme */
+  --bg-color: #F1F5F9;
+  --rail-bg: #0A1F44;
+  --surface-color: #FFFFFF;
+  --surface-alt-color: #F8FAFC;
+  --input-bg: #FFFFFF;
+  --border-color: #CBD5E1;
+  --border-dim-color: #E2E8F0;
+  --text-color: #0F172A;
+  --text-mid-color: #334155;
+  --muted-color: #475569;
+  --muted-dim-color: #64748B;
+  --ghost-color: #64748B;
+  --hover-overlay: rgba(15, 23, 42, 0.05);
 }
 
 *, *::before, *::after {
@@ -24,11 +56,17 @@ html, body, #root {
   height: 100dvh;
   width: 100%;
   overflow: hidden;
-  background: #081832;
-  color: #E8EDF5;
+  background: var(--bg-color, #081832);
+  color: var(--text-color, #E8EDF5);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+select option {
+  background: var(--surface-alt-color, #0D2244);
+  color: var(--text-color, #E8EDF5);
 }
 
 /* Animations */

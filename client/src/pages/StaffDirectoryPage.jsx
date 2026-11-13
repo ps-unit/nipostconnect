@@ -1,22 +1,16 @@
-
-// client/src/pages/StaffDirectoryPage.jsx — Phase 7
+// client/src/pages/StaffDirectoryPage.jsx — Phase 7 (+ Editable Roles for Admins + Day/Night Theme)
 import { useState, useEffect, useCallback } from "react";
-import { usersAPI } from "../services/api";
+import { usersAPI, adminAPI } from "../services/api";
 import api from "../services/api";
-import { resolveUploadUrl } from "../components/shared/styles";
+import { useAuth } from "../contexts/AuthContext";
+import { colors as C, resolveUploadUrl } from "../components/shared/styles";
 import { formatDistanceToNow } from "date-fns";
 
-const C = {
-  bg:"#081832", surface:"#081A35", surfaceAlt:"#0D2244", border:"#1E3A5F",
-  gold:"var(--accent-color, #D4A843)", text:"#E8EDF5", muted:"#6B8299", textMid:"#B0BDD0", ghost:"#2E4A6B",
-  online:"#22C55E",
-};
-
 const ROLE_BADGE = {
-  SUPER_ADMIN: { bg:"#D4A843", color:"#0A1F44", label:"Super Admin" },
+  SUPER_ADMIN: { bg:"var(--accent-color, #D4A843)", color:"#0A1F44", label:"Super Admin" },
   STATE_ADMIN:  { bg:"#2563EB", color:"#fff",    label:"State Admin"  },
   DEPT_ADMIN:   { bg:"#7C3AED", color:"#fff",    label:"Dept Admin"   },
-  STAFF:        { bg:"#1E3A5F", color:"#B0BDD0", label:"Staff"        },
+  STAFF:        { bg:"var(--border-color, #1E3A5F)", color:"var(--text-mid-color, #B0BDD0)", label:"Staff" },
 };
 
 function getInitials(name="") { return name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase(); }
@@ -26,11 +20,23 @@ function getAvatarBg(name) {
   return COLORS[Math.abs(h)%COLORS.length];
 }
 
-function StaffCard({ user, onMessage, onlineUsers }) {
+function StaffCard({ user, onMessage, onlineUsers, canEditRole, onRoleChange }) {
   const [imgErr, setImgErr] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
   const badge    = ROLE_BADGE[user.role] || ROLE_BADGE.STAFF;
   const isOnline = onlineUsers.has(user.id);
   const avatarSrc = resolveUploadUrl(user.avatarUrl);
+
+  const handleSelectRole = async (newRole) => {
+    if (newRole === user.role) return;
+    setUpdatingRole(true);
+    try {
+      await onRoleChange(user.id, newRole);
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
   return (
     <div style={{ background:C.surfaceAlt, border:`1px solid ${C.border}`,
       borderRadius:12, padding:16, display:"flex", gap:14, alignItems:"flex-start", flexWrap:"wrap" }}>
@@ -59,10 +65,30 @@ function StaffCard({ user, onMessage, onlineUsers }) {
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
           <span style={{ color:C.text, fontWeight:700, fontSize:14 }}>{user.name}</span>
-          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:8,
-            background:badge.bg, color:badge.color, fontWeight:700 }}>
-            {badge.label}
-          </span>
+          {canEditRole ? (
+            <select
+              value={user.role}
+              disabled={updatingRole}
+              onChange={e => handleSelectRole(e.target.value)}
+              title="Change staff role"
+              style={{
+                fontSize:10, padding:"2px 7px", borderRadius:8,
+                background:badge.bg, color:badge.color, fontWeight:700,
+                border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
+                opacity:updatingRole ? 0.6 : 1,
+              }}
+            >
+              <option value="STAFF">Staff</option>
+              <option value="DEPT_ADMIN">Dept Admin</option>
+              <option value="STATE_ADMIN">State Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+          ) : (
+            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:8,
+              background:badge.bg, color:badge.color, fontWeight:700 }}>
+              {badge.label}
+            </span>
+          )}
         </div>
 
         <div style={{ color:C.muted, fontSize:12, marginBottom:3, fontFamily:"monospace" }}>
@@ -101,6 +127,7 @@ function StaffCard({ user, onMessage, onlineUsers }) {
 }
 
 export default function StaffDirectoryPage({ onOpenDM }) {
+  const { user: currentUser, isAdmin, updateUser } = useAuth();
   const [users, setUsers]         = useState([]);
   const [total, setTotal]         = useState(0);
   const [loading, setLoading]     = useState(false);
@@ -160,6 +187,19 @@ export default function StaffDirectoryPage({ onOpenDM }) {
       sock.on("users:online", ids => setOnlineUsers(new Set(ids)));
     }
   }, []);
+
+  const handleRoleChange = async (userId, role) => {
+    try {
+      const r = await adminAPI.updateUser(userId, { role });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+      if (userId === currentUser?.id) {
+        updateUser(r.data.user || { role });
+      }
+      window.dispatchEvent(new CustomEvent("user:role-updated"));
+    } catch (e) {
+      alert(e.response?.data?.error || "Failed to update role");
+    }
+  };
 
   const filtered = filterOnline
     ? users.filter(u => onlineUsers.has(u.id))
@@ -253,7 +293,14 @@ export default function StaffDirectoryPage({ onOpenDM }) {
 
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap:12 }}>
           {filtered.map(u => (
-            <StaffCard key={u.id} user={u} onMessage={handleMessage} onlineUsers={onlineUsers} />
+            <StaffCard
+              key={u.id}
+              user={u}
+              onMessage={handleMessage}
+              onlineUsers={onlineUsers}
+              canEditRole={isAdmin}
+              onRoleChange={handleRoleChange}
+            />
           ))}
         </div>
 

@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import NotificationBell from "../shared/NotificationBell";
-import { colors, resolveUploadUrl } from "../shared/styles";
+import api from "../../services/api";
+import { colors, resolveUploadUrl, getTheme, toggleTheme } from "../shared/styles";
 
 const NAV = [
   { id: "channels",  icon: "🏠", label: "Channels"          },
@@ -71,6 +72,7 @@ export default function NavRail({
   const [showMenu, setShowMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [logoErr, setLogoErr] = useState(false);
+  const [theme, setTheme] = useState(() => getTheme());
 
   const orgLogoSrc = resolveUploadUrl(orgSettings?.logoUrl);
   const orgName = orgSettings?.name || "NiPOST Connect";
@@ -78,6 +80,18 @@ export default function NavRail({
   useEffect(() => {
     setLogoErr(false);
   }, [orgLogoSrc]);
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail?.theme || getTheme());
+    window.addEventListener("theme:changed", onThemeChange);
+    return () => window.removeEventListener("theme:changed", onThemeChange);
+  }, []);
+
+  const handleToggleTheme = () => {
+    const next = toggleTheme();
+    setTheme(next);
+    api.patch("/profile/settings", { theme: next }).catch(() => {});
+  };
 
   const handleNavigation = (url) => {
     if (url.startsWith("/channel/")) setActiveView("channels");
@@ -189,7 +203,7 @@ export default function NavRail({
                 bottom: 0,
                 left: 0,
                 right: 0,
-                background: "#081A35",
+                background: colors.surface,
                 borderTop: `1px solid ${colors.border}`,
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
@@ -197,7 +211,7 @@ export default function NavRail({
                 zIndex: 500,
                 maxHeight: "82vh",
                 overflowY: "auto",
-                boxShadow: "0 -8px 32px rgba(0,0,0,0.7)",
+                boxShadow: "0 -8px 32px rgba(0,0,0,0.45)",
               }}
             >
               {/* Handlebar */}
@@ -226,10 +240,27 @@ export default function NavRail({
               {/* Action list */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
                 <button
+                  onClick={handleToggleTheme}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px",
+                    borderRadius: 10, background: colors.surfaceAlt, border: `1px solid ${colors.borderDim}`,
+                    color: colors.text, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 18 }}>{theme === "light" ? "☀️" : "🌙"}</span>
+                    <span>Appearance: {theme === "light" ? "Day Mode" : "Night Mode"}</span>
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: colors.gold, padding: "3px 8px", borderRadius: 6, background: colors.goldDim }}>
+                    Switch to {theme === "light" ? "Night 🌙" : "Day ☀️"}
+                  </span>
+                </button>
+
+                <button
                   onClick={() => { onSettingsClick?.(); setShowMenu(false); }}
                   style={{
                     display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-                    borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.borderDim}`,
+                    borderRadius: 10, background: colors.surfaceAlt, border: `1px solid ${colors.borderDim}`,
                     color: colors.text, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
@@ -331,6 +362,12 @@ export default function NavRail({
 
       <div style={{ flex: 1 }} />
 
+      <NavBtn
+        icon={theme === "light" ? "☀️" : "🌙"}
+        label={theme === "light" ? "Day Mode (Click for Night Mode)" : "Night Mode (Click for Day Mode)"}
+        active={false}
+        onClick={handleToggleTheme}
+      />
       <NotificationBell onNavigate={handleNavigation} isMobile={false} />
       <NavBtn
         icon="⚙️"
@@ -352,9 +389,9 @@ export default function NavRail({
               <div style={{ position: "fixed", inset: 0, zIndex: 400 }} onClick={() => setShowAdminMenu(false)} />
               <div style={{
                 position: "absolute", left: "calc(100% + 10px)", bottom: 0,
-                background: "#0D2244", border: `1px solid ${colors.border}`,
+                background: colors.surfaceAlt, border: `1px solid ${colors.border}`,
                 borderRadius: 12, padding: 6, minWidth: 230, zIndex: 500,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
               }}>
                 <div style={{ padding: "6px 12px 8px", borderBottom: `1px solid ${colors.border}`, marginBottom: 4 }}>
                   <div style={{ color: colors.gold, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em" }}>ADMIN TOOLS</div>

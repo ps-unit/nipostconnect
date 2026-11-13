@@ -4,6 +4,7 @@ const { body, validationResult } = require("express-validator");
 const { PrismaClient } = require("@prisma/client");
 const { authenticate } = require("../middleware/auth");
 const { isAdmin, isSuperAdmin, requireChannelAccess } = require("../middleware/rbac");
+const { syncUserChannelMemberships } = require("../utils/channelSync");
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -68,11 +69,26 @@ router.get("/all", authenticate, async (req, res, next) => {
       select: { channelId: true },
     });
     const joined = new Set(memberships.map(m => m.channelId));
+    const isSuper = req.user.role === "SUPER_ADMIN";
 
-    const result = channels.map(ch => ({
-      ...ch,
-      isMember: joined.has(ch.id),
-    }));
+    // If Super Admin is missing ChannelMember rows for any active channel, sync in background
+    if (isSuper && joined.size < channels.length) {
+      syncUserChannelMemberships(prisma, req.user, req.app.get("io")).catch(() => {});
+    }
+
+    const result = channels.map(ch => {
+      const hasRoleAccess =
+        isSuper ||
+        joined.has(ch.id) ||
+        (!ch.isLocked && ["ANNOUNCEMENT", "SUGGESTION", "GENERAL", "EMERGENCY"].includes(ch.type)) ||
+        (req.user.stateId && ch.stateId === req.user.stateId) ||
+        (req.user.departmentId && ch.departmentId === req.user.departmentId);
+
+      return {
+        ...ch,
+        isMember: Boolean(hasRoleAccess),
+      };
+    });
 
     res.json({ channels: result });
   } catch (err) { next(err); }

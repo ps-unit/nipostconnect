@@ -4,6 +4,7 @@ const { body, validationResult } = require("express-validator");
 const { PrismaClient } = require("@prisma/client");
 const { authenticate } = require("../middleware/auth");
 const { isAdmin, isSuperAdmin } = require("../middleware/rbac");
+const { syncUserChannelMemberships } = require("../utils/channelSync");
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -85,9 +86,8 @@ router.patch("/users/:userId", async (req, res, next) => {
   try {
     const { role, status, stateId, departmentId } = req.body;
 
-    // Only super admin can assign SUPER_ADMIN or STATE_ADMIN roles
-    if (["SUPER_ADMIN","STATE_ADMIN"].includes(role) && req.user.role !== "SUPER_ADMIN") {
-      return res.status(403).json({ error: "Only Super Admin can assign this role" });
+    if (role && !["SUPER_ADMIN", "STATE_ADMIN", "DEPT_ADMIN", "STAFF"].includes(role)) {
+      return res.status(400).json({ error: "Invalid role specified" });
     }
 
     const user = await prisma.user.update({
@@ -95,23 +95,35 @@ router.patch("/users/:userId", async (req, res, next) => {
       data: {
         ...(role && { role }),
         ...(status && { status }),
-        ...(stateId !== undefined && { stateId }),
-        ...(departmentId !== undefined && { departmentId }),
+        ...(stateId !== undefined && { stateId: stateId || null }),
+        ...(departmentId !== undefined && { departmentId: departmentId || null }),
       },
       include: { state: true, department: true },
     });
+
+    const io = req.app.get("io");
+    await syncUserChannelMemberships(prisma, user, io);
 
     await prisma.auditLog.create({
       data: {
         adminId: req.user.id,
         action: "USER_UPDATED",
         target: user.id,
-        meta: { role, status },
+        meta: { role, status, stateId, departmentId },
       },
     });
 
-    const io = req.app.get("io");
-    io.to(`user:${user.id}`).emit("user:updated", { role: user.role, status: user.status });
+    if (io) {
+      io.to(`user:${user.id}`).emit("user:updated", {
+        id: user.id,
+        role: user.role,
+        status: user.status,
+        stateId: user.stateId,
+        departmentId: user.departmentId,
+        state: user.state,
+        department: user.department,
+      });
+    }
 
     res.json({ user });
   } catch (err) { next(err); }

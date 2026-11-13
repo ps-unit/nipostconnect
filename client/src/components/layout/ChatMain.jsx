@@ -348,9 +348,9 @@ export default function ChatMain({
                   <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => setShowActionMenu(false)} />
                   <div style={{
                     position: "absolute", top: "calc(100% + 6px)", right: 0,
-                    background: "#0D2244", border: `1px solid ${colors.border}`,
+                    background: colors.surfaceAlt, border: `1px solid ${colors.border}`,
                     borderRadius: 12, padding: 6, minWidth: 190, zIndex: 400,
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
                   }}>
                     <button
                       onClick={() => { onOpenAIMemo?.(); setShowActionMenu(false); }}
@@ -464,7 +464,7 @@ export default function ChatMain({
             )}
 
             {/* Input bar */}
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: "#0D2244",
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: colors.surfaceAlt,
               borderRadius: 10, border: `1px solid ${colors.border}`, padding: "0 10px" }}>
               {/* Phase 2: Attach button (channels) */}
               {!isDM && (

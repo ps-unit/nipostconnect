@@ -28,7 +28,7 @@ import AIMemoModal from "../components/modals/AIMemoModal";
 import TwoFASetupModal from "../components/modals/TwoFASetupModal";
 import OrgSettingsModal from "../components/modals/OrgSettingsModal";
 
-import { colors, resolveUploadUrl, getCachedOrgSettings, applyOrgBranding } from "../components/shared/styles";
+import { colors, resolveUploadUrl, getCachedOrgSettings, applyOrgBranding, applyTheme } from "../components/shared/styles";
 
 export default function ChatPage() {
   const { user, updateUser } = useAuth();
@@ -81,8 +81,24 @@ export default function ChatPage() {
     api.get("/organization")
       .then(r => setOrgSettings(r.data.settings))
       .catch(() => {});
+    api.get("/profile/settings")
+      .then(r => {
+        if (r.data?.settings?.theme && !localStorage.getItem("nipost_theme")) {
+          applyTheme(r.data.settings.theme);
+        }
+      })
+      .catch(() => {});
   }, []);
-  useEffect(() => on("channel:created", ch => setChannels(p => [...p, { ...ch, isMember: false }])), [on]);
+  useEffect(() => on("channel:created", ch => setChannels(p => [...p, { ...ch, isMember: user?.role === "SUPER_ADMIN" }])), [on, user?.role]);
+  useEffect(() => on("user:updated", data => {
+    updateUser(data);
+    loadChannels();
+  }), [on, updateUser, loadChannels]);
+  useEffect(() => {
+    const onRoleUpdated = () => loadChannels();
+    window.addEventListener("user:role-updated", onRoleUpdated);
+    return () => window.removeEventListener("user:role-updated", onRoleUpdated);
+  }, [loadChannels]);
   useEffect(() => on("message:new", msg => {
     if (msg.channelId !== activeChannelId && msg.author?.id !== user.id)
       setUnreadMap(m => ({ ...m, [msg.channelId]: (m[msg.channelId] || 0) + 1 }));

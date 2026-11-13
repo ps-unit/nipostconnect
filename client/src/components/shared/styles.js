@@ -1,18 +1,20 @@
 // src/components/shared/styles.js
 
 export const colors = {
-  bg:         "#081832",
-  surface:    "#081A35",
-  surfaceAlt: "#0D2244",
-  border:     "#1E3A5F",
-  borderDim:  "#0D2244",
+  bg:         "var(--bg-color, #081832)",
+  rail:       "var(--rail-bg, #050F20)",
+  surface:    "var(--surface-color, #081A35)",
+  surfaceAlt: "var(--surface-alt-color, #0D2244)",
+  inputBg:    "var(--input-bg, #081832)",
+  border:     "var(--border-color, #1E3A5F)",
+  borderDim:  "var(--border-dim-color, #0D2244)",
   gold:       "var(--accent-color, #D4A843)",
   goldDim:    "var(--accent-dim, rgba(212,168,67,0.15))",
-  text:       "#E8EDF5",
-  textMid:    "#B0BDD0",
-  muted:      "#6B8299",
-  mutedDim:   "#4B6280",
-  ghost:      "#2E4A6B",
+  text:       "var(--text-color, #E8EDF5)",
+  textMid:    "var(--text-mid-color, #B0BDD0)",
+  muted:      "var(--muted-color, #6B8299)",
+  mutedDim:   "var(--muted-dim-color, #4B6280)",
+  ghost:      "var(--ghost-color, #2E4A6B)",
   online:     "#22C55E",
   idle:       "#F59E0B",
   offline:    "#4B6280",
@@ -62,7 +64,7 @@ export const s = {
     padding: "10px 12px",
     borderRadius: 8,
     border: `1px solid ${colors.border}`,
-    background: "#081832",
+    background: "var(--input-bg, #081832)",
     color: colors.text,
     fontSize: 14,
     marginBottom: 16,
@@ -216,6 +218,37 @@ export function resolveUploadUrl(url) {
 }
 
 const ORG_CACHE_KEY = "nipost_org_settings";
+const THEME_CACHE_KEY = "nipost_theme";
+
+export function getTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_CACHE_KEY);
+    return saved === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+export function applyTheme(theme, { persist = true } = {}) {
+  const mode = theme === "light" ? "light" : "dark";
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", mode);
+  }
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_CACHE_KEY, mode);
+    } catch {}
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("theme:changed", { detail: { theme: mode } }));
+  }
+  return mode;
+}
+
+export function toggleTheme() {
+  const next = getTheme() === "light" ? "dark" : "light";
+  return applyTheme(next, { persist: true });
+}
 
 export function getCachedOrgSettings() {
   try {
@@ -275,8 +308,9 @@ export function applyOrgBranding(settings, { persist = true } = {}) {
   }
 }
 
-// Immediately apply any cached branding on initial script evaluation
+// Immediately apply any cached branding and theme on initial script evaluation
 if (typeof window !== "undefined") {
+  applyTheme(getTheme(), { persist: false });
   const cached = getCachedOrgSettings();
   if (cached) applyOrgBranding(cached, { persist: false });
 }
